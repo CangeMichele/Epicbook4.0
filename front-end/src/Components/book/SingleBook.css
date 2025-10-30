@@ -1,0 +1,10 @@
+.my-card {
+    height: 420px;
+    width: 12rem;
+    margin: 10px;
+}
+
+
+.my-card-title {
+    font-size: medium;
+}

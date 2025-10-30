@@ -1,0 +1,9 @@
+.category-card {
+    font-weight: 700;
+}
+
+
+
+.selected{
+    border: 5px solid red;
+}

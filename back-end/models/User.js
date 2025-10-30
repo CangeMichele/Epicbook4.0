@@ -52,7 +52,7 @@ const userSchema = new Schema(
 );
 
 // comparatore password (confronta inserita con quella hashata nel DB)
-userSchema.method.comparePassword = function (candidatePassword) {
+userSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 }
 

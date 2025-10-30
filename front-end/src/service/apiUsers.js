@@ -1,7 +1,11 @@
 // ----- configurazione api
 import api from "./apiConfig";
 
-//POST -> Nuovo utente
+
+// --------------------------   POST   -------------------------------------
+//#region POST
+
+// -> Nuovo utente
 export const addUser = async (registerFormData) => {
     try {
         const response = await api.post(`/users`, registerFormData);
@@ -9,11 +13,26 @@ export const addUser = async (registerFormData) => {
     } catch (error) {
         console.error("Errore nella chiamata api: addUser", error)
         throw error;
+    };
+};
+
+// -> Login utente
+export const loginUser = async (credetials) => {
+    try {
+        const response = await api.post("/auth/user", credetials);
+        return response.data;   
+    } catch (error) {
+        throw error;
     }
-}
+};
+
+//#endregion
 
 
-// GET -> Tutti gli utenti
+// --------------------------   GET   --------------------------------------
+//#region GET
+
+// -> Tutti gli utenti
 export const getAllUsers = async () => {
     try {
         const response = await api.get("/users");
@@ -24,7 +43,7 @@ export const getAllUsers = async () => {
     }
 };
 
-// ----- GET -> Utente da email
+//  -> Utente da email
 export const getByUserEmail = async (email) => {
     try {
         const response = await api.get(`/users/email/${encodeURIComponent(email)}`);
@@ -34,10 +53,10 @@ export const getByUserEmail = async (email) => {
         console.error("Errore nella chiamata api: getUserEmail", error);
         throw error;
     }
-}
+};
 
 
-// ----- GET -> Utente da username
+// -> Utente da username
 export const getByUsername = async (username) => {
     try {
         const response = api.get(`/users/${username}`);
@@ -47,10 +66,10 @@ export const getByUsername = async (username) => {
         console.error("Errore nella chiamata api: getByUsername", error);
         throw error;
     }
-}
+};
 
 
-// ----- GET -> Lista di username con prefisso uguale (es. mario, mario3, mariorossi)
+// -> Lista di username con prefisso uguale (es. mario, mario3, mariorossi)
 export const getUsernamePrefixList = async (newUsername) => {
     try {
         const response = await api.get(`/users/usernamePrefix/${newUsername}`);
@@ -59,4 +78,5 @@ export const getUsernamePrefixList = async (newUsername) => {
         console.error("Errore nella richiesta API:getUsernamePrefixList", error);
         throw error;
     }
-}
+};
+//#endregion

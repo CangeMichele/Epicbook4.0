@@ -1,11 +1,14 @@
 //----- Componenti react
-import { React, useState } from "react";
+import { useState } from "react";
 //----- Componenti react-bootstrap
 import { Button, Container, Form } from "react-bootstrap";
 //----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 
+import{loginUser} from "././../service/apiUsers.js";
+
 export default function Login() {
+
   const [loginFormData, setLoginFormData] = useState({
     email: "",
     password: "",
@@ -23,7 +26,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await loginUSer(formData);
+      const response = await loginUser(loginFormData);
 
       //memorizza token in local storage
       localStorage.setItem("token", response.token);

@@ -7,6 +7,7 @@ import cors from "cors";
 
 import booksRoutes from "./routes/booksRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -21,8 +22,9 @@ mongoose
 .then(() => console.log("MONGODB: connesso"))
 .catch((err) => console.error("MONGODB: ERRORE - ", err));
 
-app.use("/api/books", booksRoutes);
-app.use("/api/users", usersRoutes);
+app.use("/api/books", booksRoutes); //libri nel DB
+app.use("/api/users", usersRoutes); //utenti nel DB
+app.use("/api/auth", authRoutes); //autenticazione
 
 
 const PORT = process.env.PORT || 5001;

@@ -3,6 +3,9 @@ import Book from "../models/Book.js";
 
 const router = express.Router();
 
+// --------------------------   GET   --------------------------------------
+//#region GET
+
 // ----- GET/books => Estrapolazione di tutti i libri
 router.get("/", async (req, res) => {
     try {
@@ -13,7 +16,6 @@ router.get("/", async (req, res) => {
         res.status(500).json({message: err.message})
     }
 });
-
 
 // ---- GET/books/:category => Estrapolazione libri per categoria
 router.get("/:category", async(req, res) =>{
@@ -48,6 +50,6 @@ router.get("/details/:asin", async(req, res) => {
         
     }
 })
-
+//#endregion
 
 export default router;

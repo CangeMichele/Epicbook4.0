@@ -1,7 +1,11 @@
 // ----- Configurazione api 
 import api from "./apiConfig";
 
-//GET => Tutti i libri
+
+// --------------------------   GET   -------------------------------------
+//#region GET        
+
+// -> Tutti i libri
 export const getAllBooks = async ()=>{
     try {
         const response = await api.get("/books");
@@ -12,7 +16,7 @@ export const getAllBooks = async ()=>{
     }
 };
 
-//GET => Libri per categoria
+// -> Libri per categoria
 export const getBooksCategory = async (category)=>{
     try {
         const response = await api.get(`/books/${category}`);
@@ -23,7 +27,7 @@ export const getBooksCategory = async (category)=>{
     }
 };
 
-//GET => Libro per asin
+// -> Libro per asin
 export const getBook = async(asin) =>{
     try {
         const response = await api.get(`books/details/${asin}`)
@@ -33,3 +37,4 @@ export const getBook = async(asin) =>{
         throw error;
     }
 }
+//#endregion 

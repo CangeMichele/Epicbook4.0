@@ -1,52 +1,45 @@
-import {Schema, model} from "mongoose";
+import { Schema, model } from "mongoose";
 import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
-        firstName:{
+        firstName: {
             type: String,
             required: true,
-            trim:true
         },
-        lastName:{
-            type:String,
-            required:true,
-            trim:true
+        lastName: {
+            type: String,
+            required: true,
         },
-        birthDate:{
-            type:Date,
-            required:true
+        birthDate: {
+            type: Date,
+            required: true
         },
-        email:{
-            type:String,
-            required:true,
-            unique:true,
-            trim:true
+        email: {
+            type: String,
+            required: true,
+            unique: true,
         },
-        password:{
-            type:String,
-            required:true,
-            trim:true
-        },      
-        avatar_url:{
-            type:String,
-            required:true,
-            trim:true
+        password: {
+            type: String,
+            required: true,
         },
-        avatar_id:{
-            type:String,
-            required:true,
-            trim:true
+        avatar_url: {
+            type: String,
+            required: true,
         },
-        userName:{
-            type:String,
-            required:true,
-            unique:true,
-            trim:true
-        } 
-
+        avatar_id: {
+            type: String,
+            required: true,
+        },
+        userName: {
+            type: String,
+            required: true,
+            unique: true,
+        }
     },
     {
+        timestamps: true,
         collection: "users"
     }
 );
@@ -56,14 +49,18 @@ userSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 }
 
-//hashing password prima del salvataggio nel DB
-userSchema.pre("save", async function (next){
-    if(!this.isModified("password")) return next();
+// MIDDLEWARE hashing password prima del salvataggio nel DB
+userSchema.pre("save", async function (next) {
+    //se già presente vai avanti
+    if (!this.isModified("password")) return next();
 
+    //altrimenti procedi con hash password
     try {
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(10); // esegue 10 round di hashing
         this.password = await bcrypt.hash(this.password, salt);
+
         next();
+
     } catch (error) {
         next(error);
     }

@@ -3,6 +3,7 @@ import { getByUserEmail, getUsernamePrefixList } from "../../service/apiUsers";
 
 // *** CONTROLLI VALIDITA' DATI FORM REGISTRAZIONE UTENTE***
 export default async function newUserControls(newUserdata) {
+  
   const formData = new FormData();
 
   // ----> controllo campo nome vuoto
@@ -10,7 +11,7 @@ export default async function newUserControls(newUserdata) {
   if (!firstName) {
     return {
       status: false,
-      details: "firstname_error",
+      details: "firstName_error",
       message: "Inserisci il tuo nome",
     };
   }else{
@@ -18,18 +19,16 @@ export default async function newUserControls(newUserdata) {
   }
 
     // ----> controllo campo cognoome vuoto
-  const lastName = newUserdata.ewUserdata.lastName;
+  const lastName = newUserdata.lastName;
   if (!lastName) {
     return {
       status: false,
-      details: "lastname_error",
+      details: "lastName_error",
       message: "Inserisci il tuo cognome",
     };
   }else{
-    formData.append("lastName", firstName);
+    formData.append("lastName", lastName);
   }
-
-  formData.append("lastName", newUserdata.lastName);
 
   // ---> controllo utente maggiore 16 anni <-----
   const today = new Date();
@@ -46,7 +45,7 @@ export default async function newUserControls(newUserdata) {
   ) {
     return {
       status: false,
-      details: "birthdate_error",
+      details: "birthDate_error",
       message: "Devi avere almeno 16 anni per poterti registrare !",
     };
   } else {
@@ -59,7 +58,7 @@ export default async function newUserControls(newUserdata) {
   if (!email.includes("@")) {
     return {
       status: false,
-      details: "email_error",
+      details: "invalidEmail_error",
       message: "Inserisci una email valida",
     };
   }
@@ -69,7 +68,7 @@ export default async function newUserControls(newUserdata) {
     if (emailResult.exist) {
       return {
         status: false,
-        details: "email_error",
+        details: "existedEmail_error",
         message: "Questa email è già stata registrata",
       };
     } else {
@@ -139,8 +138,6 @@ export default async function newUserControls(newUserdata) {
         const partName = srcNumber
           ? newUsername.slice(0, srcNumber.index)
           : newUsername;
-        console.log("qui");
-        console.table(usernameList);
 
         for (let i = 0; i <= usernameList.length; i++) {
           const suggest = partName + String(i + 1);
@@ -154,7 +151,7 @@ export default async function newUserControls(newUserdata) {
             return {
               status: false,
               userName: suggest,
-              details: "username_error",
+              details: "userName_error",
               message: "Username esistente ! Prova con " + suggest,
             };
           }
@@ -185,7 +182,6 @@ export default async function newUserControls(newUserdata) {
   }
 
   // ---> se non si è bloccato prima allora tutto ok <-----
-
   return {
     status: true,
     details: "successfull",

@@ -1,13 +1,17 @@
 //----- Componenti react
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+// ----- Componenti context
+import { useContext } from "react";
+import { AuthContext } from "../Context/AuthContext";
 // ---- Funzioni
 import newUserControls from "../Components/users/newUserControls";
+// ---- API
 import { addUser } from "../service/apiUsers";
 //---- Stilizzazone
 import { Button, Container, Form } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./register.css";
-import { use } from "react";
 
 // *** estrapolazione dati da form e inserimento in DB ***
 export default function Register() {
@@ -23,19 +27,36 @@ export default function Register() {
     userName: "",
   });
 
+  //recupero stato token dal context
+  const { setToken } = useContext(AuthContext);
+
+  //navigatore
+  const navigate = useNavigate();
+
   // stato validità form
   const [validatedForm, setValidatedForm] = useState(false);
-  // stato tipoliogia errore
+  // stato errore
   const [errorType, setErrorType] = useState();
-  // stato messaggio di errore
-  const [errorMessage, setErrorMessage] = useState();
+  // stato suggerimento username
+  const [usernameSuggest, setUsernameSuggest] = useState("");
 
   //gestore cambiamento input form registrazione
   const handleChangeRegisterForm = (e) => {
+    const { name, value } = e.target;
     setRegisterFormData({
       ...registerFormData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    //resetta stato errore di campo modificato
+    if (
+      errorType === `${name}_error` ||
+      errorType === "invalidEmail_error" ||
+      errorType === "existedEmail_error" ||
+      errorType === "mismatch_error"
+    ) {
+      setErrorType(null);
+    }
   };
 
   //gestore cambiamento file
@@ -45,6 +66,15 @@ export default function Register() {
     setRegisterFormData({
       ...registerFormData,
       avatar: file,
+    });
+  };
+
+  //gestore suggertiemnto username
+  const handleSuggestUsername = (suggest) => {
+    setUsernameSuggest(suggest);
+    setRegisterFormData({
+      ...registerFormData,
+      userName: suggest,
     });
   };
 
@@ -63,20 +93,24 @@ export default function Register() {
     // esecuzione di controlli dati form
     const newUser = await newUserControls(registerFormData);
 
-    //se errori, blocca
+    // in caso di errore catturra l'errore
     if (!newUser.status) {
-      setErrorMessage(newUser.message);
-      console.log("errore" + errorMessage);
+      setErrorType(newUser.details);
+
+      //se errore username suggerisci
+      if (newUser.details === "userName_error") {
+        handleSuggestUsername(newUser.userName);
+      }
 
       return;
     }
 
-    setErrorMessage();
     setErrorType();
 
     try {
-      await addUser(newUser.objectData);
-      console.info("utente registrato");
+      const response = await addUser(newUser.objectData);
+      //aggiorno token autenticazione
+      setToken(response.token);
 
       //reset del form
       setRegisterFormData({
@@ -90,6 +124,9 @@ export default function Register() {
         userName: "",
       });
       setValidatedForm(false);
+      setUsernameSuggest("");
+
+      navigate(`/user/${newUser.objectData.get("userName")}`);
     } catch (error) {
       console.log("errore regitrazione", error);
       alert("errore registrazione");
@@ -106,14 +143,11 @@ export default function Register() {
             name="firstName"
             onChange={handleChangeRegisterForm}
             value={registerFormData.firstName}
-            isInvalid={
-              (validatedForm && !registerFormData.firstName) ||
-              errorType === "firstname_error"
-            }
+            isInvalid={validatedForm && errorType === "firstName_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            Inserisci il tuo nome
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -124,14 +158,11 @@ export default function Register() {
             name="lastName"
             onChange={handleChangeRegisterForm}
             value={registerFormData.lastName}
-            isInvalid={
-              (validatedForm && !registerFormData.lastName) ||
-              errorType === "lastname_error"
-            }
+            isInvalid={validatedForm && errorType === "lastName_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            Inserisci il tuo cognome
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -142,14 +173,11 @@ export default function Register() {
             name="birthDate"
             onChange={handleChangeRegisterForm}
             value={registerFormData.birthDate}
-            isInvalid={
-              (validatedForm && !registerFormData.birthDate) ||
-              errorType === "birthdate_error"
-            }
+            isInvalid={validatedForm && errorType === "birthDate_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            Devi avere almeno 16 anni per poterti registrare !
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -160,13 +188,20 @@ export default function Register() {
             name="email"
             onChange={handleChangeRegisterForm}
             value={registerFormData.email}
+            i
             isInvalid={
-              (validatedForm && !!errorMessage) || errorType === "email_error"
+              validatedForm &&
+              (errorType === "invalidEmail_error" ||
+                errorType === "existedEmail_error")
             }
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            {errorType === "invalidEmail_error"
+              ? "Inserisci una email valida"
+              : errorType === "existedEmail_error"
+              ? "Questa email è già stata registrata"
+              : "Inserisci email"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -177,15 +212,12 @@ export default function Register() {
             name="password1"
             onChange={handleChangeRegisterForm}
             value={registerFormData.password1}
-            isInvalid={
-              (validatedForm && !!errorMessage) ||
-              errorType === "password_error"
-            }
+            isInvalid={validatedForm && errorType === "password_error"}
             placeholder="Minimo 8 caratteri fra cui almeno una maiuscola, un numero e un carattere speciale"
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            La password non rispetta i criteri di sicurezza.
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -196,15 +228,12 @@ export default function Register() {
             name="password2"
             onChange={handleChangeRegisterForm}
             value={registerFormData.password2}
-            isInvalid={
-              (validatedForm && !!errorMessage) ||
-              errorType === "mismatch_error"
-            }
+            isInvalid={validatedForm && errorType === "mismatch_error"}
             placeholder="Ripeti password"
             required
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            Le password non coincidono.
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -216,18 +245,25 @@ export default function Register() {
             onChange={handleChangeRegisterForm}
             value={registerFormData.userName}
             isInvalid={
-              (validatedForm && !!errorMessage) ||
-              errorType === "username_error"
+              validatedForm &&
+              (!registerFormData.userName || errorType === "userName_error")
             }
           />
           <Form.Control.Feedback type="invalid">
-            {errorMessage}
+            {usernameSuggest !== ""
+              ? `Username esitente ! prova con ${usernameSuggest}`
+              : "Inserisci un username"}
           </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group controlId="reg-avatar">
           <Form.Label>Avatar</Form.Label>
-          <Form.Control type="file" name="avatar" onChange={handleFileChange} />
+          <Form.Control
+            type="file"
+            accept="image/*"
+            name="avatar"
+            onChange={handleFileChange}
+          />
         </Form.Group>
 
         <Button type="submit">Registrati</Button>

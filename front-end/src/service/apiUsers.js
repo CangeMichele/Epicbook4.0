@@ -16,17 +16,8 @@ export const addUser = async (registerFormData) => {
     };
 };
 
-// -> Login utente
-export const loginUser = async (credetials) => {
-    try {
-        const response = await api.post("/auth/user", credetials);
-        return response.data;   
-    } catch (error) {
-        throw error;
-    }
-};
-
 //#endregion
+
 
 
 // --------------------------   GET   --------------------------------------
@@ -50,7 +41,7 @@ export const getByUserEmail = async (email) => {
         // endcodeURIComponent per evitare crash su caratteri speciali
         return response.data;
     } catch (error) {
-        console.error("Errore nella chiamata api: getUserEmail", error);
+        console.error("Errore nella chiamata api: getByUserEmail", error);
         throw error;
     }
 };
@@ -60,7 +51,7 @@ export const getByUserEmail = async (email) => {
 export const getByUsername = async (username) => {
     try {
         const response = api.get(`/users/${username}`);
-        
+
         return (await response).data;
     } catch (error) {
         console.error("Errore nella chiamata api: getByUsername", error);
@@ -80,3 +71,12 @@ export const getUsernamePrefixList = async (newUsername) => {
     }
 };
 //#endregion
+
+// --------------------------   UPDATE   --------------------------------------
+//#region UPDATE
+
+export const updateUserAvatar = async (newAvatar)  =>
+//#endregion
+
+
+

@@ -7,27 +7,28 @@ const commentSchema = new Schema(
             required: true,
             unique: true
         },
-        userID:{
-            type:String,
+        userID: {
+            type: String,
             required: true
         },
-        date:{
+        date: {
             type: Date,
             required: true
         },
-        comment:{
-            type:String,
-            required:true
+        comment: {
+            type: String,
+            required: true
         },
-        rating:{
-            type:Number,
-            enum:[1,2,3,4,5],
-            required:true
+        rating: {
+            type: Number,
+            enum: [1, 2, 3, 4, 5],
+            required: true
         }
     },
 
     {
-        collection:"comments"
+        timestamps: true,
+        collection: "comments"
     }
 );
 

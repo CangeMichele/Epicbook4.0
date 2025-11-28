@@ -1,9 +1,7 @@
 import express from "express";
 import User from "../models/User.js";
 
-
 import { generateJWT } from "../utils/jwt.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
 import { cloudinary, cloudinaryUploader } from "../config/cloudinaryConfig.js"
 
 const router = express.Router();
@@ -24,28 +22,23 @@ router.post("/", cloudinaryUploader.single("avatar"), async (req, res) => {
 
         const newUser = new User(formData);
         await newUser.save();
-        res.status(201).json(newUser);
+        
+        const response = newUser.toObject();
+
+        //rimozine password dalla risposta (sicurezza)
+        delete response.password;
+
+        //crezione e assegnazione token per login automatico
+        const token = await generateJWT({id:response._id});
+        response.token = token;
+        
+
+        res.status(201).json(response);
 
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
 });
-
-// -> creazione nuovo utente
-router.post("/new", async (req, res) => {
-    const user = new User(req.body);
-    try {
-        const newUser = await user.save();
-
-        //rimozine password dalla risposta (sicurezza)
-        const response = newUser.toObject();
-        delete response.password;
-
-        res.status(201).json(response);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-})
 
 // -> login con assegnazione token autenticazione
 router.post("/login", async (req, res) => {
@@ -54,7 +47,7 @@ router.post("/login", async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-            return req.statusCode(401).json({ message: "Email non valida" });
+            return req.statusCode(401).json({ message: "Utente non trovato" });
         }
 
         const isMatch = await User.comparePassword(password);
@@ -83,7 +76,7 @@ router.get("/", async (req, res) => {
         res.status(200).json(users);
 
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        res.status(404).json({ message: error.message })
     }
 });
 
@@ -120,13 +113,6 @@ router.get("/usernamePrefix/:username", async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-});
-
-// -> Estrapolazione dati utente tramite token autenticazione
-router.get("/me", authMiddleware, (req, res) => {
-    const userData = req.user.toObject();
-    delete userData.password;
-    res.json(userData);
 });
 
 //#endregion

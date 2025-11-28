@@ -9,6 +9,8 @@ import booksRoutes from "./routes/booksRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 
+import {badRequestHandler, authorizedHandler, notFoundHandler, genericErrorHandler} from "./middlewares/errorHandlers.js"
+
 dotenv.config();
 
 const app = express();
@@ -22,12 +24,19 @@ mongoose
 .then(() => console.log("MONGODB: connesso"))
 .catch((err) => console.error("MONGODB: ERRORE - ", err));
 
+// rotte chiamate API
 app.use("/api/books", booksRoutes); //libri nel DB
 app.use("/api/users", usersRoutes); //utenti nel DB
 app.use("/api/auth", authRoutes); //autenticazione
 
 
 const PORT = process.env.PORT || 5001;
+
+//errorHandler mmiddleware
+app.use(badRequestHandler);
+app.use(authorizedHandler);
+app.use(notFoundHandler);
+app.use(genericErrorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server acceso alla porta ${PORT}`);

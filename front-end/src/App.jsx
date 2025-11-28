@@ -1,7 +1,6 @@
-//----- Componenti react
-import { React } from "react";
+
 //----- Comonenti react-router-dom
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter as Router} from "react-router-dom";
 //----- Componenti context
 import { AuthProvider } from "./Context/AuthContext";
 
@@ -21,15 +20,15 @@ export default function App() {
 
   return (
     <>
-      <BrowserRouter>
-        <MyNavbar categoryList={categoryList} />
-  
+      <Router>
+      
         <AuthProvider>
+          <MyNavbar categoryList={categoryList} />
           <MyMain categoryList={categoryList} />
         </AuthProvider>
-  
+
         <MyFooter />
-      </BrowserRouter>
+      </Router>
     </>
   );
 }

@@ -3,10 +3,9 @@ import { getByUserEmail, getUsernamePrefixList } from "../../service/apiUsers";
 
 // *** CONTROLLI VALIDITA' DATI FORM REGISTRAZIONE UTENTE***
 export default async function newUserControls(newUserdata) {
-  
-  const formData = new FormData();
+  const formDataNewUser = new FormData();
 
-  // ----> controllo campo nome vuoto
+  // #region firstame -> Controllo campo nome <-------------------------
   const firstName = newUserdata.firstName;
   if (!firstName) {
     return {
@@ -14,11 +13,12 @@ export default async function newUserControls(newUserdata) {
       details: "firstName_error",
       message: "Inserisci il tuo nome",
     };
-  }else{
-    formData.append("firstName", firstName);
+  } else {
+    formDataNewUser.append("firstName", firstName);
   }
+  //#endregion
 
-    // ----> controllo campo cognoome vuoto
+  // #region lastName -> Controllo campo cognome <----------------------
   const lastName = newUserdata.lastName;
   if (!lastName) {
     return {
@@ -26,11 +26,12 @@ export default async function newUserControls(newUserdata) {
       details: "lastName_error",
       message: "Inserisci il tuo cognome",
     };
-  }else{
-    formData.append("lastName", lastName);
+  } else {
+    formDataNewUser.append("lastName", lastName);
   }
+  //#endregion
 
-  // ---> controllo utente maggiore 16 anni <-----
+  // #region age -> Controllo utente maggiore 16 anni <-----------------
   const today = new Date();
   const [year, month, day] = newUserdata.birthDate.split("-");
   const birthDate = new Date(year, month - 1, day);
@@ -49,10 +50,11 @@ export default async function newUserControls(newUserdata) {
       message: "Devi avere almeno 16 anni per poterti registrare !",
     };
   } else {
-    formData.append("birthDate", newUserdata.birthDate);
+    formDataNewUser.append("birthDate", newUserdata.birthDate);
   }
+  //#endregion
 
-  // ---> controllo email <-----
+  // #region email -> Controllo email <---------------------------------
   const email = newUserdata.email;
 
   if (!email.includes("@")) {
@@ -64,27 +66,32 @@ export default async function newUserControls(newUserdata) {
   }
 
   try {
-    const emailResult = await getByUserEmail(email);
-    if (emailResult.exist) {
-      return {
-        status: false,
-        details: "existedEmail_error",
-        message: "Questa email è già stata registrata",
-      };
-    } else {
-      formData.append("email", newUserdata.email);
-    }
-  } catch (error) {
-    console.error("search email error", error);
+    await getByUserEmail(email);
+
+    //se va a buon fine allora email già esistente, gesti come errore
     return {
       status: false,
-      details: "API_error",
-      message:
-        "Errore nella registrazione. Se il problema persiste contattare il Servizio Clienti",
+      details: "existedEmail_error",
+      message: "Questa email è già stata registrata",
     };
+  } catch (error) {
+    //gestisci gli errori != da email non trovata
+    if (error.response.status !== 404) {
+      console.error("search email error", error);
+      return {
+        status: false,
+        details: "API_error",
+        message:
+          "Errore nella registrazione. Se il problema persiste contattare il Servizio Clienti",
+      };
+    }
   }
+  // se arriva qui allora è una email non registrata, si può usare
+  formDataNewUser.append("email", email);
 
-  // ---> controllo password <-----
+  //#endregion
+
+  // #region password -> controllo password <---------------------------
   const password1 = newUserdata.password1;
   const password2 = newUserdata.password2;
 
@@ -103,7 +110,7 @@ export default async function newUserControls(newUserdata) {
   }
 
   if (password1 === password2) {
-    formData.append("password", newUserdata.password1);
+    formDataNewUser.append("password", newUserdata.password1);
   } else {
     return {
       status: false,
@@ -111,9 +118,9 @@ export default async function newUserControls(newUserdata) {
       message: "Le password non coincidono",
     };
   }
+  //#endregion
 
-
-  //---> controllo userName <-----
+  // #region userName -> controllo userName <---------------------------
   const newUsername = newUserdata.userName;
 
   try {
@@ -121,7 +128,7 @@ export default async function newUserControls(newUserdata) {
 
     if (usernameList.length === 0) {
       // se non trova nessuna corrispondenza con stesso prefiso allora è valido
-      formData.append("userName", newUsername);
+      formDataNewUser.append("userName", newUsername);
     } else {
       // controlla se fra quelli con stesso prefisso ne esiste uno identico
       const existedUsername = usernameList.some(
@@ -130,7 +137,7 @@ export default async function newUserControls(newUserdata) {
 
       if (!existedUsername) {
         // se non esiste username identico allora è valido
-        formData.append("userName", newUsername);
+        formDataNewUser.append("userName", newUsername);
       } else {
         //se esite suggerisci primo username dispondibile (prefisso + numero)
 
@@ -147,7 +154,7 @@ export default async function newUserControls(newUserdata) {
 
           if (!trySuggest) {
             //se suggerimento non è presente allora è valido
-            formData.append("userName", suggest);
+            formDataNewUser.append("userName", suggest);
             return {
               status: false,
               userName: suggest,
@@ -166,26 +173,27 @@ export default async function newUserControls(newUserdata) {
         "Errore nella registrazione. Se il problema persiste contattare il Servizio Clienti",
     };
   }
+  // #endregion
 
-  
-  // ---> controllo avatar <-----
+  // #region avatar -> controllo avatar <-------------------------------
   const avatar = newUserdata.avatar;
   if (!avatar) {
     // se campo vuoto
-    formData.append(
+    formDataNewUser.append(
       "avatar_url",
       "https://res.cloudinary.com/dvbmskxg4/image/upload/v1760776725/default_avatar_pac2qu"
     );
-    formData.append("avatar_id", "default_avatar_pac2qu");
+    formDataNewUser.append("avatar_id", "default_avatar_pac2qu");
   } else {
-    formData.append("avatar", avatar);
+    formDataNewUser.append("avatar", avatar);
   }
+  //#endregion
 
   // ---> se non si è bloccato prima allora tutto ok <-----
   return {
     status: true,
     details: "successfull",
     message: "dati elaborati con successo e pronti all'invio",
-    objectData: formData,
+    objectData: formDataNewUser,
   };
 }

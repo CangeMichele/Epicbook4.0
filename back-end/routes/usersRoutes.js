@@ -9,36 +9,56 @@ const router = express.Router();
 // --------------------------   POST   --------------------------------------
 //#region POST
 
-// -> salvataggio file img avatar su cloudnary
-router.post("/", cloudinaryUploader.single("avatar"), async (req, res) => {
+// // -> salvataggio file img avatar su cloudnary
+// router.post("/", cloudinaryUploader.single("avatar"), async (req, res) => {
+//     try {
+//         const formData = req.body;
+
+//         if (req.file) {
+//             //carico file cover
+//             formData.avatar_url = req.file.path;
+//             formData.avatar_id = req.file.filename;
+//         }
+
+//         const newUser = new User(formData);
+//         await newUser.save();
+
+//         const response = newUser.toObject();
+
+//         //rimozine password dalla risposta (sicurezza)
+//         delete response.password;
+
+//         //crezione e assegnazione token per login automatico
+//         const token = generateJWT({id:user._id});
+//         response.token = token;
+
+//         res.status(201).json(response);
+
+//     } catch (error) {
+//         res.status(500).json({ message: error.message })
+//     }
+// });
+
+// -> creazione nuovo utente
+router.post("/", async (req, res) => {
     try {
-        const formData = req.body;
-
-        if (req.file) {
-            //carico file cover
-            formData.avatar_url = req.file.path;
-            formData.avatar_id = req.file.filename;
-        }
-
-        const newUser = new User(formData);
-        await newUser.save();
-        
-        const response = newUser.toObject();
+        const user = new User(req.body);
+        const newUser = await user.save();
 
         //rimozine password dalla risposta (sicurezza)
+        const response = newUser.toObject();
         delete response.password;
 
         //crezione e assegnazione token per login automatico
-        const token = await generateJWT({id:response._id});
+        const token = generateJWT({ id: user._id });
         response.token = token;
-        
 
         res.status(201).json(response);
 
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        res.status(500).json({ message: error.message });
     }
-});
+})
 
 // -> login con assegnazione token autenticazione
 router.post("/login", async (req, res) => {
@@ -66,6 +86,52 @@ router.post("/login", async (req, res) => {
 });
 //#endregion
 
+// --------------------------   PUT   -------------------------------------
+//#region PUT
+
+// -> modifica immagine profilo
+router.put("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
+
+    try {
+        const { user_id, fileName } = req.body;
+        
+        if (req.file) {     
+            //upload su clloudinary 
+            const uploaded = await new Promise((resolve, reject) => { //wrappo su una promise per usare await
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        public_id: fileName,
+                        folder: "epicbook/avatar",
+                        overwrite: true,
+                    },
+                    (err, uploaded) => { err ? reject(err) : resolve(uploaded) }
+                );
+                //invio del file
+                stream.end(req.file.buffer);
+            });
+        }
+
+        //TO DO OGGETTO DA POPOLARE CON PARAMETRI E POI AGGIORNARE USER PASSANDO L'OGGETTO
+
+        //aggiorno utente
+        const user = await User.findByIdAndUpdate(
+            user_id,
+            {
+                avatar_url: uploaded.secure_url,
+                avatr_id: uploaded.public_id
+            },
+
+        );
+
+        res.status(200).json(user);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+//#endregion
+
 // --------------------------   GET   --------------------------------------
 //#region GET
 
@@ -81,7 +147,7 @@ router.get("/", async (req, res) => {
 });
 
 // -> utente da email
-router.get("/email/:email", async (req, res) => {
+router.get("/:email", async (req, res) => {
     try {
         const { email } = req.params;
         const user = await User.findOne({ email });
@@ -94,6 +160,21 @@ router.get("/email/:email", async (req, res) => {
         res.status(500).json({ message: error.message })
     }
 });
+
+// -> utente da userName
+router.get("/:userName", async (req, res) => {
+    try {
+        const { userName } = req.params
+        const user = await User.findOne({ userName });
+        if (user) {
+            req.status(200).json(user);
+        } else {
+            req.status(404).json({ message: "userName non trovato nel db" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+})
 
 // -> lista username con stesso prefisso (es. mario, mario3, mariorossi)
 router.get("/usernamePrefix/:username", async (req, res) => {

@@ -1,7 +1,7 @@
 //----- Componenti react
 import { useEffect, useState } from "react";
 //----- Componenti react-router-dom
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 //-----Componenti react-router-bootstrap
 import { LinkContainer } from "react-router-bootstrap";
 //----- Componenti react-bootstrap
@@ -17,26 +17,26 @@ import "./MyNavbar.css";
 
 //----- MyNavbar.jsx
 export default function MyNavbar({ categoryList }) {
-  //recupero categoria da url
-  const { category } = useParams();
-  //rilevo cambio url
-  const location = useLocation();
-  //stato categoria attiva
-  const [activeCat, setActiveCat] = useState("");
+
+  //stringa url attuale (lavoro su url perchè navbar è furi dalle rotte e quindi non posso usare useParams)
+  const url = useLocation();
+  //stato categoria selezionata
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   // recupero dal context
   const { isLogged, logout, userData } = useContext(AuthContext);
-
-  //recupero categoria ad ogni cambio url
+  
+  
   useEffect(() => {
-    const pathParts = location.pathname.split("/");
-    const categoryFromPath = pathParts[2] || "";
-
-    setActiveCat(categoryFromPath);
-  }, [location]);
+    //controllo se mi trovo in /books  
+    if (url.pathname.split("/")[1] === "books"){
+      //recupero categoria
+      setSelectedCategory( url.pathname.split("/")[2])
+    }
+  }, [url]);
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary fixed-top">
+    <Navbar expand="lg" className="bg-body-tertiary fixed-top" collapseOnSelect>
       <Container>
         <Navbar.Brand>EpicBook!</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -49,20 +49,20 @@ export default function MyNavbar({ categoryList }) {
           </Nav>
 
           <Nav className="me-5">
-            {categoryList?.map((cat) => (
-              <LinkContainer key={cat} to={`/books/${cat}`}>
-                <Nav.Link className={cat === activeCat ? "active-nav" : ""}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            {categoryList?.map((category) => (
+              <LinkContainer key={category} to={`/books/${category}`}>
+                <Nav.Link className={category === selectedCategory ? "active-nav" : ""}>
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
                 </Nav.Link>
               </LinkContainer>
             ))}
           </Nav>
 
           <Nav>
-            {isLogged ?
+            {isLogged && userData ?
             (
               <NavDropdown title={userData?.firstName || "Utente"} id="basic-nav-dropdown">
-              <NavDropdown.Item href={`/user/${userData?.userName}`}>Profilo</NavDropdown.Item>
+              <NavDropdown.Item href={`/user/${userData.userName}`}>Profilo</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item>
                               <Button onClick={logout}>logout</Button>

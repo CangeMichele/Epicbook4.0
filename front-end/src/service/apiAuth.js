@@ -29,6 +29,7 @@ export const getUserData = async () => {
         return response.data;
 
     } catch (error) {
+ 
         console.error("Errore nella richiesta getUserData:", error);
         throw error;
     }

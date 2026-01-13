@@ -7,15 +7,23 @@ import api from "./apiConfig";
 
 // -> Nuovo utente
 export const addUser = async (registerFormData) => {
-    try {
-        const response = await api.post(`/users`, registerFormData);
-        return response.data;
-    } catch (error) {
-        console.error("Errore nella chiamata api: addUser", error)
-        throw error;
-    };
+
+    const response = await api.post(`/users`, registerFormData);
+    return response.data;
+
 };
 
+//#endregion
+
+// --------------------------   PUT   -------------------------------------
+//#region PUT
+
+//-> Aggiorna User
+export const putUser = async (uploadFormData) => {
+    const response = await api.put(`/users/avatar`, uploadFormData);
+    return response.data;
+
+}
 //#endregion
 
 
@@ -25,57 +33,49 @@ export const addUser = async (registerFormData) => {
 
 // -> Tutti gli utenti
 export const getAllUsers = async () => {
-    try {
-        const response = await api.get("/users");
-        return response.data
-    } catch (error) {
-        console.error("Errore nella chiamata api: getAllUser", error)
-        throw error;
-    }
+
+    const response = await api.get("/users");
+    return response.data
+
 };
 
 //  -> Utente da email
 export const getByUserEmail = async (email) => {
-    try {
-        const response = await api.get(`/users/email/${encodeURIComponent(email)}`);
-        // endcodeURIComponent per evitare crash su caratteri speciali
-        return response.data;
-    } catch (error) {
-        console.error("Errore nella chiamata api: getByUserEmail", error);
-        throw error;
-    }
+
+    const response = await api.get(`/users/email/${encodeURIComponent(email)}`);
+    // endcodeURIComponent per evitare crash su caratteri speciali
+    return response.data;
+
 };
 
 
 // -> Utente da username
 export const getByUsername = async (username) => {
-    try {
-        const response = api.get(`/users/${username}`);
 
-        return (await response).data;
-    } catch (error) {
-        console.error("Errore nella chiamata api: getByUsername", error);
-        throw error;
-    }
+    const response = await api.get(`/users/${username}`);
+
+    return response.data;
+
 };
 
 
 // -> Lista di username con prefisso uguale (es. mario, mario3, mariorossi)
 export const getUsernamePrefixList = async (newUsername) => {
-    try {
-        const response = await api.get(`/users/usernamePrefix/${newUsername}`);
-        return response.data;
-    } catch (error) {
-        console.error("Errore nella richiesta API:getUsernamePrefixList", error);
-        throw error;
-    }
+
+    const response = await api.get(`/users/usernamePrefix/${newUsername}`);
+    return response.data;
+
 };
 //#endregion
 
 // --------------------------   UPDATE   --------------------------------------
 //#region UPDATE
 
-export const updateUserAvatar = async (newAvatar)  =>
+// -> Aggiorna avatar
+export const updateAvatar = async (avatr) => {
+
+}
+
 //#endregion
 
 

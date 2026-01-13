@@ -1,5 +1,6 @@
 //----- Componenti react
 import { useState } from "react";
+// ----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
 import { useContext } from "react";
@@ -7,7 +8,7 @@ import { AuthContext } from "../Context/AuthContext";
 // ---- Funzioni
 import newUserControls from "../Components/users/newUserControls";
 // ---- API
-import { addUser } from "../service/apiUsers";
+import { addUser, putUser } from "../service/apiUsers";
 //---- Stilizzazone
 import { Button, Container, Form } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -23,9 +24,13 @@ export default function Register() {
     email: "",
     password1: "",
     password2: "",
-    avatar: "",
     userName: "",
+    avatar_url: "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png",
+    avatar_id: "avt_default",
   });
+
+  //stato contenente file da cricare
+  const [fileAvatar, setFileAvatar] = useState(null);
 
   //recupero stato token dal context
   const { setToken } = useContext(AuthContext);
@@ -63,10 +68,7 @@ export default function Register() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setRegisterFormData({
-      ...registerFormData,
-      avatar: file,
-    });
+    setFileAvatar(file);
   };
 
   //gestore suggertiemnto username
@@ -108,9 +110,21 @@ export default function Register() {
     setErrorType();
 
     try {
-      const response = await addUser(newUser.objectData);
+      // salvo nuovo utente senza avatar
+      const responseUser = await addUser(newUser.objectData);
+      
+      //carico avatar 
+      const avatarObject = {
+        file: fileAvatar,
+        user_id: responseUser._id,
+        fileName: `avt_${responseUser._id}`
+      }
+
+      await putUser(avatarObject);
+
+
       //aggiorno token autenticazione
-      setToken(response.token);
+      setToken(responseUser.token);
 
       //reset del form
       setRegisterFormData({
@@ -127,6 +141,8 @@ export default function Register() {
       setUsernameSuggest("");
 
       navigate(`/user/${newUser.objectData.get("userName")}`);
+
+
     } catch (error) {
       console.log("errore regitrazione", error);
       alert("errore registrazione");

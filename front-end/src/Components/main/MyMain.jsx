@@ -1,5 +1,5 @@
 //----- Componenti react-router-dom
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 // ----- Componenti context
 import { useContext } from "react";
 import { AuthContext } from "../../Context/AuthContext";
@@ -21,31 +21,59 @@ import NotFound from "../../Pages/NotFound";
 
 // ----- MyMain.jsx
 export default function MyMain({ categoryList }) {
-    //recupero token dal context
-    const { token } = useContext(AuthContext);
+  //recupero dal context
+  const { isLogged, userData } = useContext(AuthContext);
 
   return (
     <Container className="mainContainer">
+      
       <Routes>
+      
+        {/* HOME */}
         <Route path="/" element={<HomePage categoryList={categoryList} />} />
-        <Route path="login" element={<Login />} />
-        <Route path="user/:username" element={<User />} />
-        {/* se login non può registrarsi */}
-        <Route path="register" element={!token?<Register />: <Navigate to="/" />} />
-
-
-        <Route path="books/:category" element={<Books />} />
-
+      
+        {/* USER */}
+        <Route path={`user/:user`} element={<User />} />
+      
+      {/* LOGIN: se già loggato va in user */}
         <Route
-          path="details/:asin"
+          path="login"
           element={
-              <BookDetails />
-            // <AuthRoute>
-            // </AuthRoute>
+            !isLogged ? (
+              <Login />
+            ) : userData?.userName ? (
+              <Navigate to={`/user/${userData.userName}`} />
+            ) : null
           }
         />
 
+        {/* REGISTER: se già loggato va in user  */}
+        <Route
+          path="register"
+          // se già loggato vai al profile
+          element={
+            !isLogged ? (
+              <Register />
+            ) : (
+              <Navigate to={"/"} />
+            ) 
+          }
+        />
+
+        {/* BOOKS: libri per categoia */}
+        <Route path="books/:category" element={<Books />} />
+        
+        {/* DETAILS: dettagli libro */}
+        <Route
+          path="details/:asin"
+          element={
+            <BookDetails />
+          }
+        />
+        
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
+      
       </Routes>
     </Container>
   );

@@ -27,7 +27,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if(error.respomnse?.status === 401) { //401 = unathorized
+    if(error.response?.status === 401) { //401 = unathorized
       //rimozione token
       localStorage.removeItem("EpicBookToken");
       //navigazione a login

@@ -1,27 +1,27 @@
-import {v2 as cloudinary} from "cloudinary";
-import {CloudinaryStorage} from "multer-storage-cloudinary";
-import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
+import multer from "multer";
+
 
 dotenv.config();
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key:process.env.CLOUDINARY_API_KEY,
-    api_secret:process.env.CLOUDINARY_API_SECRET
-});
-
-const storage = new CloudinaryStorage({
-    cloudinary : cloudinary,
-    params:{
-        folder:"epicbook/avatar",
-        allowed_formats:["jpeg", "png", "jpg", "gif"],
-    }
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const cloudinaryUploader = multer({
-    storage:storage,
-    limits:{filesize: 5 * 1024 * 1024} //limite 5MB
-});
+    storage:multer.memoryStorage(), // salva in RAM
+    limits:{
+        fileSize:5*1024*1024, //5MB
+    },
+    fileFilter: (req,file, cb) => {
+        if(!file.mimetype.startsWith("image/")){
+            cb(new Error("Il file non è un immagine")); // callback errore
+        }
+        cb(null, true); //callback nessun erorre,
+    }
+})
 
-export {cloudinary, cloudinaryUploader};
+export { cloudinary, cloudinaryUploader};

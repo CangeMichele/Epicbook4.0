@@ -106,7 +106,7 @@ function validatePassword(inputPass1, inputPass2) {
         return {
             status: false,
             details: "password_error",
-            message: "La password non rispetta i criteri minimi di sicurezza.";
+            message: "La password non rispetta i criteri minimi di sicurezza.",
         };
     };
 

@@ -1,5 +1,5 @@
 // ---- API
-import { getByUserEmail, getUsernamePrefixList } from "../../service/apiUsers";
+import { getExistedUserByEmail, getUsernamePrefixList } from "../service/apiUsers";
 
 // *** CONTROLLI VALIDITA' DATI UTENTE***
 
@@ -30,12 +30,12 @@ function validateLastName(inputLastName) {
 // --> Controllo campo età <--
 function validateAge(inputBirthdate) {
     if (!inputBirthdate) {
-    return {
-        status: false,
-        details: "birthDate_error",
-        message: "Inserisci la data di nascita",
-    };
-}
+        return {
+            status: false,
+            details: "birthDate_error",
+            message: "Inserisci la data di nascita",
+        };
+    }
 
     const today = new Date();
 
@@ -70,28 +70,30 @@ async function validateEmail(inputEmail) {
     };
 
     try {
-        await getByUserEmail(inputEmail);
-        // se la trova allora è già registrata
-        return {
-            status: false,
-            details: "existedEmail_error",
-            message: "Questa email è già stata reistrata",
-        };
+        const response = await getExistedUserByEmail(inputEmail);
 
-    } catch (error) {
-        //gestisci errori diversi da 404 (email non trovata)
-        if (error.response?.status !== 404) {
-            console.eror("Erorre nella chiamnata API getByUserEmail: ", error);
+        // se esiste, errore
+        if (response.exist) {
             return {
                 status: false,
-                details: "API_erorr",
+                details: "existedEmail_error",
+                message: "Questa email è già stata registrata",
+            };
+        }
+        
+        //se non esiste, valido
+        return { status: true, value: inputEmail };
+        
+    } catch (error) {
+            return {
+                status: false,
+                details: "API_error",
                 message: "Errore nella registrazione. Se il problema persiste contattare l'assistenza.",
             };
-        };
+        
+
     };
 
-    //se arriva qui allora è una email non registrata
-    return { status: true, value: inputEmail };
 };
 
 // --> Controllo campi password <--
@@ -165,13 +167,13 @@ async function validateUserName(inputUserName) {
             if (!trySuggest) return {
                 status: false,
                 details: "userName_error",
-                message: "Username già esistemnte. Prova con " + suggestUserName,
+                message: "Username già esistente. Prova con " + suggestUserName,
                 value: suggestUserName,
             };
         };
 
     } catch (error) {
-        console.eror("Erorre nella chiamnata API getUsernamePrefixList: ", error);
+        console.error("Errore nella chiamnata API getUsernamePrefixList: ", error);
         return {
             status: false,
             details: "API_error",
@@ -181,7 +183,7 @@ async function validateUserName(inputUserName) {
     }
 };
 
-export const UserValidatorData = {
+const userDataControl = {
     firstName: validateFirstName,
     lastName: validateLastName,
     birthDate: validateAge,
@@ -189,3 +191,41 @@ export const UserValidatorData = {
     password: validatePassword,
     userName: validateUserName,
 };
+
+export async function validatorUserData(mode = "register", userData) {
+
+    //formdata contenente dati utente da caricare
+    const formDataUser = new FormData();
+
+    //ciclo l'oggetto tramite .entries
+    //a nome campo userData corrisponde stesso nome campo userDataControl per validaizone
+    for (const [field, validator] of Object.entries(userDataControl)) {
+
+        //valore userdata corrispondete al campo controllo 
+        const dataValue = userData[field];
+
+        //vai al campo successivo se vuoto e si è in modifica
+        if (!dataValue && mode === "edit") continue;
+
+        //eseguo controlli 
+        const resControl =
+            field === "password"
+                ? validator(userData.password1, userData.password2)
+                : await validator(dataValue);
+
+        if (!resControl.status) {
+            return resControl;
+        } else {
+            field === "password"
+                ? formDataUser.append("password", userData.password1)
+                : formDataUser.append(field, resControl.value);
+        }
+    }
+
+    //se tutti i controlli ok, restituisci formdata
+    return {
+        status: true,
+        formData: formDataUser
+    };
+
+}

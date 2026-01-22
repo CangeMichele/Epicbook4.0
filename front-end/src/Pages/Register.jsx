@@ -6,9 +6,9 @@ import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../Context/AuthContext";
 // ---- Funzioni
-import newUserControls from "../Components/users/newUserControls";
+import { validatorUserData } from "../utils/validatorUSerData";
 // ---- API
-import { addUser, putUser } from "../service/apiUsers";
+import { addUser } from "../service/apiUsers";
 //---- Stilizzazone
 import { Button, Container, Form } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -25,12 +25,19 @@ export default function Register() {
     password1: "",
     password2: "",
     userName: "",
-    avatar_url: "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png",
-    avatar_id: "avt_default",
   });
 
   //stato contenente file da cricare
   const [fileAvatar, setFileAvatar] = useState(null);
+
+  // stato validità form
+  const [validatedForm, setValidatedForm] = useState(false);
+
+  // stato tipologia errore
+  const [errorType, setErrorType] = useState();
+
+  // stato suggerimento username
+  const [usernameSuggest, setUsernameSuggest] = useState("");
 
   //recupero stato token dal context
   const { setToken } = useContext(AuthContext);
@@ -38,14 +45,7 @@ export default function Register() {
   //navigatore
   const navigate = useNavigate();
 
-  // stato validità form
-  const [validatedForm, setValidatedForm] = useState(false);
-  // stato errore
-  const [errorType, setErrorType] = useState();
-  // stato suggerimento username
-  const [usernameSuggest, setUsernameSuggest] = useState("");
-
-  //gestore cambiamento input form registrazione
+  // -> Gestore cambiamento input form registrazione
   const handleChangeRegisterForm = (e) => {
     const { name, value } = e.target;
     setRegisterFormData({
@@ -64,14 +64,14 @@ export default function Register() {
     }
   };
 
-  //gestore cambiamento file
+  // -> Gestore cambiamento file
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setFileAvatar(file);
   };
 
-  //gestore suggertiemnto username
+  // -> Gestore suggertiemnto username
   const handleSuggestUsername = (suggest) => {
     setUsernameSuggest(suggest);
     setRegisterFormData({
@@ -80,20 +80,21 @@ export default function Register() {
     });
   };
 
-  //gestore invio form registrazione
+  // -> Gestore invio form registrazione
   const handleRegister = async (e) => {
     e.preventDefault();
-    const form = e.currentTarget; //controllo validità form
+    const form = e.currentTarget;
 
     setValidatedForm(true);
 
+    //controllo validità form
     if (form.checkValidity() === false) {
       e.stopPropagation();
       return;
     }
 
     // esecuzione di controlli dati form
-    const newUser = await newUserControls(registerFormData);
+    const newUser = await validatorUserData("register", registerFormData);
 
     // in caso di errore catturra l'errore
     if (!newUser.status) {
@@ -107,24 +108,20 @@ export default function Register() {
       return;
     }
 
+    // se non trova errori prosegue 
     setErrorType();
 
     try {
-      // salvo nuovo utente senza avatar
-      const responseUser = await addUser(newUser.objectData);
-      
-      //carico avatar 
-      const avatarObject = {
-        file: fileAvatar,
-        user_id: responseUser._id,
-        fileName: `avt_${responseUser._id}`
-      }
+      const responseAddUser = await addUser(newUser.formData, fileAvatar);
 
-      await putUser(avatarObject);
+  
+    if (!responseAddUser.token){
+      alert("errore server, riprova")
+      return
+    }
 
-
-      //aggiorno token autenticazione
-      setToken(responseUser.token);
+      // //aggiorno token autenticazione
+      setToken(responseAddUser.token);
 
       //reset del form
       setRegisterFormData({
@@ -141,8 +138,6 @@ export default function Register() {
       setUsernameSuggest("");
 
       navigate(`/user/${newUser.objectData.get("userName")}`);
-
-
     } catch (error) {
       console.log("errore regitrazione", error);
       alert("errore registrazione");

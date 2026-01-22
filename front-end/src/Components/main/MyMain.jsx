@@ -14,13 +14,13 @@ import "./myMain.css";
 import Login from "../../Pages/Login";
 import Register from "../../Pages/Register";
 import User from "../../Pages/UserPage";
-import HomePage from "../../pages/Home";
-import Books from "../../Pages/BooksList";
+import HomePage from "../../Pages/Home";
+import BooksList from "../../Pages/BooksList";
 import BookDetails from "../../Pages/BookDetails";
 import NotFound from "../../Pages/NotFound";
 
 // ----- MyMain.jsx
-export default function MyMain({ categoryList }) {
+export default function MyMain() {
   //recupero dal context
   const { isLogged, userData } = useContext(AuthContext);
 
@@ -30,7 +30,7 @@ export default function MyMain({ categoryList }) {
       <Routes>
       
         {/* HOME */}
-        <Route path="/" element={<HomePage categoryList={categoryList} />} />
+        <Route path="/" element={<HomePage/>} />
       
         {/* USER */}
         <Route path={`user/:user`} element={<User />} />
@@ -61,7 +61,7 @@ export default function MyMain({ categoryList }) {
         />
 
         {/* BOOKS: libri per categoia */}
-        <Route path="books/:category" element={<Books />} />
+        <Route path="books/" element={<BooksList />} />
         
         {/* DETAILS: dettagli libro */}
         <Route

@@ -6,48 +6,59 @@ const router = express.Router();
 // --------------------------   GET   --------------------------------------
 //#region GET
 
-// ----- GET/books => Estrapolazione di tutti i libri
+//----- GET/books => Estrapolazione di tutti i libri con filtri e impaginazione 
 router.get("/", async (req, res) => {
     try {
-        const books = await Book.find();
-        res.json(books);
+        // elementi per impaginazioni
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
 
-    } catch (err) {
-        res.status(500).json({message: err.message})
+        const allowedSort = ["asin", "title", "price"];
+        const sort = allowedSort.includes(req.query.sort) ? req.query.sort : "asin";
+
+        const sortDirection = req.query.sortDirection === "desc" ? -1 : 1;
+        const skip = (page - 1) * limit;
+
+        //lista di filtri  consentiti (N.B. se filter vuoto allora tutti i libri)
+        const allowedFilters = ["category"];
+        
+        //cerca e aggiungi filtri
+        const filter = Object.fromEntries(
+            Object.entries(req.query).filter(([key]) => allowedFilters.includes(key))
+        );
+
+        const books = await Book.find(filter)
+            .sort({ [sort]: sortDirection })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Book.countDocuments(filter);
+
+        res.json({
+            books: books || [],
+            totalPages: Math.ceil(total / limit),
+            totalBooks: total,
+        })
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
     }
-});
-
-// ---- GET/books/:category => Estrapolazione libri per categoria
-router.get("/:category", async(req, res) =>{
- try {
-    const {category} = req.params;
-    const books = await Book.find({category});
-    res.json(books);
-    if( books.lenght == 0 ){
-        req.status(400).json({message: `nessuna risorsa trovata per ${category}` })
-    }
-
- } catch (error) {
-    res.status(500).json({message: error.message})
- }   
 })
 
 
-//----- GET libri per categoria con impaginazione
-
-
 //----- GET/details/:asin => Estrapolazione libro tramite asin
-router.get("/details/:asin", async(req, res) => {
+router.get("/:asin", async (req, res) => {
     try {
-        const book = await Book.findOne({asin: req.params.asin});
+        const book = await Book.findOne({ asin: req.params.asin });
         if (!book) {
-            return req.status(400).json({message: "libro non trovato"})
+            return res.status(404).json({ message: "libro non trovato" })
         }
         res.json(book);
-        
+
     } catch (err) {
-        res.status(500).json({message: err.message});
-        
+        res.status(500).json({ message: err.message });
+
     }
 })
 //#endregion

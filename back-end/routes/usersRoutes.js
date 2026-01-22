@@ -2,45 +2,28 @@ import express from "express";
 import User from "../models/User.js";
 
 import { generateJWT } from "../utils/jwt.js";
-import { cloudinary, cloudinaryUploader } from "../config/cloudinaryConfig.js"
+import cloudinaryUploader from "../config/cloudinaryConfig.js";
 
 const router = express.Router();
 
 // --------------------------   POST   --------------------------------------
 //#region POST
 
-// // -> salvataggio file img avatar su cloudnary
-// router.post("/", cloudinaryUploader.single("avatar"), async (req, res) => {
-//     try {
-//         const formData = req.body;
-
-//         if (req.file) {
-//             //carico file cover
-//             formData.avatar_url = req.file.path;
-//             formData.avatar_id = req.file.filename;
-//         }
-
-//         const newUser = new User(formData);
-//         await newUser.save();
-
-//         const response = newUser.toObject();
-
-//         //rimozine password dalla risposta (sicurezza)
-//         delete response.password;
-
-//         //crezione e assegnazione token per login automatico
-//         const token = generateJWT({id:user._id});
-//         response.token = token;
-
-//         res.status(201).json(response);
-
-//     } catch (error) {
-//         res.status(500).json({ message: error.message })
-//     }
-// });
-
+ // -> salvataggio file img avatar su cloudnary
+ router.post("/user/avatar", cloudinaryUploader.single("avatar"), async(req, res)=>{
+    try {
+        res.status(200).json({
+            avatr_url: req.file.path,
+            avatr_id: req.file.filename
+        });
+    } catch (error) {
+        res.status(500).json({message: "Errore upload avatar"});
+        
+    }
+ })
+    
 // -> creazione nuovo utente
-router.post("/", async (req, res) => {
+router.post("/user", async (req, res) => {
     try {
         const user = new User(req.body);
         const newUser = await user.save();
@@ -146,23 +129,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// -> utente da email
-router.get("/:email", async (req, res) => {
-    try {
-        const { email } = req.params;
-        const user = await User.findOne({ email });
-        if (user) {
-            res.json({ exist: true })
-        } else {
-            res.json({ exist: false })
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message })
-    }
-});
-
 // -> utente da userName
-router.get("/:userName", async (req, res) => {
+router.get("/user/:userName", async (req, res) => {
     try {
         const { userName } = req.params
         const user = await User.findOne({ userName });
@@ -176,8 +144,23 @@ router.get("/:userName", async (req, res) => {
     }
 })
 
+// -> esistenza da email 
+router.get("/email-exists/:email", async (req, res) => {
+    try {
+        const { email } = req.params;
+        const user = await User.findOne({ email });
+        if (user) {
+            res.json({ exist: true })
+        } else {
+            res.json({ exist: false })
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+});
+
 // -> lista username con stesso prefisso (es. mario, mario3, mariorossi)
-router.get("/usernamePrefix/:username", async (req, res) => {
+router.get("/prefix-username/:username", async (req, res) => {
     try {
         const { username } = req.params;
         const userList = await User.find({
@@ -202,7 +185,7 @@ router.get("/usernamePrefix/:username", async (req, res) => {
 //#region DELETE
 
 // -> cancella utente da email
-router.delete("/:email", async (req, res) => {
+router.delete("/email/:email", async (req, res) => {
 
     const user = await User.findOne({ email: req.params.email });
     if (!user) {

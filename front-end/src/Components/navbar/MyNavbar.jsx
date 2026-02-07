@@ -1,13 +1,13 @@
 //-----Componenti react-router-bootstrap
 import { LinkContainer } from "react-router-bootstrap";
-//----- Componenti react-bootstrap
-import { Container, Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
+//----- Componenti react-router-dom
+import { useNavigate, useLocation } from "react-router-dom";
 // ----- Componenti context
 import { useContext } from "react";
 import { AuthContext } from "../../Context/AuthContext";
 import { BooksContext } from "../../Context/BooksContext";
-// ----- API
-
+//----- Componenti react-bootstrap
+import { Container, Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
 // ----- Stilizzazione
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./MyNavbar.css";
@@ -16,8 +16,19 @@ import "./MyNavbar.css";
 export default function MyNavbar() {
   const { categoryList, category, setCategory } = useContext(BooksContext);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // recupero dal context
   const { isLogged, logout, userData } = useContext(AuthContext);
+
+  //gestore click su categoria
+  const handleCategoryClick = (selectedCat) => {
+    setCategory(selectedCat);
+    if (location.pathname !== "/books") {
+      navigate("/books");
+    }
+  };
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary fixed-top" collapseOnSelect>
@@ -36,9 +47,9 @@ export default function MyNavbar() {
             {categoryList?.map((cat) => (
               <Nav.Link
                 key={cat}
-                onClick={()=>setCategory(cat)}
+                onClick={() => handleCategoryClick(cat)}
                 className={cat === category ? "active-nav" : ""}
-                style={{ cursor: "pointer" }} 
+                style={{ cursor: "pointer" }}
               >
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Nav.Link>

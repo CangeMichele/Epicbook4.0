@@ -19,10 +19,10 @@ router.get("/", async (req, res) => {
         const sortDirection = req.query.sortDirection === "desc" ? -1 : 1;
         const skip = (page - 1) * limit;
 
-        //lista di filtri  consentiti (N.B. se filter vuoto allora tutti i libri)
+        //lista di filtri  consentiti 
         const allowedFilters = ["category"];
         
-        //cerca e aggiungi filtri
+        //cerca e aggiungi filtri (N.B. se filter vuoto allora tutti i libri)
         const filter = Object.fromEntries(
             Object.entries(req.query).filter(([key]) => allowedFilters.includes(key))
         );

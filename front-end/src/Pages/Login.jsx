@@ -17,8 +17,6 @@ export default function Login() {
     password: "",
   });
 
-  const navigate = useNavigate();
-
   const { setToken } = useContext(AuthContext);
 
   //gestore cambiamento input form login
@@ -40,10 +38,11 @@ export default function Login() {
       //salvataggio token  in localStorage
       localStorage.setItem("EpicBookToken", response.token);
 
-      navigate("/");
-
-      // TO DO : una volta collegato vai alla tua pagina personale "/:nomeutente". se sei tu vedi modifica sennò solo dati
-      // navigate(`/user/:${user}`);
+      //token => useEffect in authContext
+      // autContext => isLogged 
+      // isLogged => element Route in myMain 
+      // Route => UserPage
+      
     } catch (error) {
       console.error("Errore autenticazione", error);
       alert("Credenziali errate");

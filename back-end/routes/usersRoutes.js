@@ -2,28 +2,16 @@ import express from "express";
 import User from "../models/User.js";
 
 import { generateJWT } from "../utils/jwt.js";
-import cloudinaryUploader from "../config/cloudinaryConfig.js";
+import { cloudinary, cloudinaryUploader } from "../config/cloudinaryConfig.js";
 
 const router = express.Router();
 
 // --------------------------   POST   --------------------------------------
 //#region POST
 
- // -> salvataggio file img avatar su cloudnary
- router.post("/user/avatar", cloudinaryUploader.single("avatar"), async(req, res)=>{
-    try {
-        res.status(200).json({
-            avatr_url: req.file.path,
-            avatr_id: req.file.filename
-        });
-    } catch (error) {
-        res.status(500).json({message: "Errore upload avatar"});
-        
-    }
- })
-    
+
 // -> creazione nuovo utente
-router.post("/user", async (req, res) => {
+router.post("/", async (req, res) => {
     try {
         const user = new User(req.body);
         const newUser = await user.save();
@@ -33,13 +21,28 @@ router.post("/user", async (req, res) => {
         delete response.password;
 
         //crezione e assegnazione token per login automatico
-        const token = generateJWT({ id: user._id });
+        const token = await generateJWT({ id: user._id });
         response.token = token;
+        console.log(response);
+
 
         res.status(201).json(response);
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: "errore api" + error.message });
+    }
+})
+
+// -> salvataggio file img avatar su cloudnary
+router.post("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
+    try {
+        res.status(200).json({
+            avatar_url: req.file.path,
+            avatar_id: req.file.filename
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Errore upload avatar" });
+
     }
 })
 
@@ -57,7 +60,6 @@ router.post("/login", async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ message: "Password errata" });
         }
-
 
         const token = await generateJWT({ id: user._id });
         res.json({ token, message: "Login ok" });
@@ -77,8 +79,8 @@ router.put("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
 
     try {
         const { user_id, fileName } = req.body;
-        
-        if (req.file) {     
+
+        if (req.file) {
             //upload su clloudinary 
             const uploaded = await new Promise((resolve, reject) => { //wrappo su una promise per usare await
                 const stream = cloudinary.uploader.upload_stream(
@@ -118,65 +120,51 @@ router.put("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
 // --------------------------   GET   --------------------------------------
 //#region GET
 
-// -> tutti gli utenti
+// -> Utenti con parametri
 router.get("/", async (req, res) => {
     try {
-        const users = await User.find();
-        res.status(200).json(users);
+
+        // lista di parametri consentiti
+        const allowedParams = ["userName", "email", "prefix"];
+
+        //filtra paramentri consentiti (se vuoto res = tutti gli utenti)
+        const params = Object.fromEntries(
+            Object.entries(req.query).filter(
+                ([key]) => allowedParams.includes(key)
+            )
+        );
+
+        // lista di parametri univoci (solo uno fra questi)
+        const uniqueParams = ["userName", "email", "prefix"];
+        //controllo presenza parametri univoci
+        const presentKeys = uniqueParams.filter(key => key in params);
+        if (presentKeys.length > 1) throw new Error("Errore nei parametri univoci");
+
+        //rendo insensitive tutti i parametri di ricerca
+        Object.keys(params).forEach((key) => {
+            if (typeof params[key] === "string") {
+                
+                if (key === "prefix") {
+                    //se ricerco prefisso popolo username ( regex senza $, match parziale insensitive)
+                    params.userName = { $regex: `^${params[key]}`, $options: "i" };
+                    delete params.prefix;
+                } else {
+                    //altrimenti regola per tutti (match preciso insensitive)
+                    params[key] = { $regex: `^${params[key]}$`, $options: "i" };
+                }
+            }
+        });
+
+        //chiamata al DB
+        const users = await User.find(params);
+        res.json(users);
 
     } catch (error) {
         res.status(404).json({ message: error.message })
     }
-});
-
-// -> utente da userName
-router.get("/user/:userName", async (req, res) => {
-    try {
-        const { userName } = req.params
-        const user = await User.findOne({ userName });
-        if (user) {
-            req.status(200).json(user);
-        } else {
-            req.status(404).json({ message: "userName non trovato nel db" });
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message })
-    }
-})
-
-// -> esistenza da email 
-router.get("/email-exists/:email", async (req, res) => {
-    try {
-        const { email } = req.params;
-        const user = await User.findOne({ email });
-        if (user) {
-            res.json({ exist: true })
-        } else {
-            res.json({ exist: false })
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message })
-    }
-});
-
-// -> lista username con stesso prefisso (es. mario, mario3, mariorossi)
-router.get("/prefix-username/:username", async (req, res) => {
-    try {
-        const { username } = req.params;
-        const userList = await User.find({
-            userName: {
-                $regex: `^${username}`,
-                $options: "i"
-            }
-        }).select("userName");
-        console.log(userList);
-
-        res.status(200).json(userList);
 
 
-    } catch (error) {
-        res.status(500).json({ message: error.message })
-    }
+
 });
 
 //#endregion
@@ -184,34 +172,41 @@ router.get("/prefix-username/:username", async (req, res) => {
 // --------------------------   DELETE   --------------------------------------
 //#region DELETE
 
-// -> cancella utente da email
-router.delete("/email/:email", async (req, res) => {
 
-    const user = await User.findOne({ email: req.params.email });
-    if (!user) {
-        return res.status(404).json({ message: "utente non trovato" })
-    }
-
-    //eliminazione avatar su cloudinary
-    const avatar_id = user.avatar_id;
-    if (avatar_id && avatar_id !== "default_avatar_pac2qu") {
-        try {
-            await cloudinary.uploader.destroy(avatar_id, { resource_type: "image", });
-        } catch (CloudinaryError) {
-            return res.status(500).json({ message: "Errrore nella cancellazione cloudinary - " + CloudinaryError })
-        }
-    }
-
-    //elimizazione utente
-    const user_id = user._id;
+// -> Cancella Avatar da coludinary
+router.delete("/avatar", async (req, res) => {
+    const avatar_id = req.query.avatar_id;
     try {
-        const userDelete = await User.findByIdAndDelete(user_id);
+        if (!avatar_id) throw new Error("Errore eliminazione avatar, nessun id presente");
+
+        if (avatar_id !== "avt_default") {
+            const deleteAvatar = await cloudinary.uploader.destroy(avatar_id, { resource_type: "image" });
+
+            if (deleteAvatar.result === "not found") return res.status(404).json({ message: "Avatar non trovato" })
+            return res.status(200).json({ message: "Avatar eliminato" });
+        }
+
+    } catch (error) {
+        return res.status(500).json({ message: "Errore nella cancellazione su cloudinary - " + error })
+    }
+});
+
+
+// -> cancella utente da id
+router.delete("/:id", async (req, res) => {
+    const _id = req.params.id;
+
+    try {
+        const userDelete = await User.findByIdAndDelete(_id);
         if (!userDelete) return res.status(404).json({ message: "utente non trovato" });
         return res.status(200).json({ message: "utente eliminato con successo" });
+
     } catch (error) {
         res.status(500).json({ message: "errore server: " + error });
     }
 });
+
+
 
 //#endregion 
 

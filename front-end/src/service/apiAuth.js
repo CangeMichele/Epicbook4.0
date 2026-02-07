@@ -23,14 +23,14 @@ export const loginUser = async (credetials) => {
 //#region UserData
 
 // -> Estrapolazione dati etente loggato
-export const getUserData = async () => {
+export const getAuthUser = async () => {
     try {
         const response = await api.get("auth/me");
         return response.data;
 
     } catch (error) {
  
-        console.error("Errore nella richiesta getUserData:", error);
+        console.error("Errore nella richiesta getAuthUser:", error);
         throw error;
     }
 

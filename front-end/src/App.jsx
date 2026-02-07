@@ -2,7 +2,7 @@
 import { BrowserRouter as Router } from "react-router-dom";
 //----- Componenti context
 import { AuthProvider } from "./Context/AuthContext";
-import { BooksContext, BooksProvider } from "./Context/BooksContext";
+import { BooksProvider } from "./Context/BooksContext";
 
 //----- Componenti app
 import MyNavbar from "./Components/navbar/MyNavbar";

@@ -1,7 +1,7 @@
 //----- Componenti react
 import { createContext, useEffect, useState } from "react";
 // ----- API
-import { getUserData } from "../service/apiAuth";
+import { getAuthUser } from "../service/apiAuth";
 //----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 
@@ -23,17 +23,17 @@ export const AuthProvider = ({ children }) => {
     const savedToken = localStorage.getItem("EpicBookToken");
     if (savedToken) setToken(savedToken); //
     
-    // se non c'è in localStorage e non è stato settato dal login allora blocca tutto
+    // se non c'è token blocca
     if (!token) {
       return;
     }
     
-    // se non si è bloccato allora token preso da login
+    // se non si è bloccato allora token assegnato da login o register
 
      //estrapolazione dati utente
     const fetchUserData = async () => {
       try {
-        const data = await getUserData();
+        const data = await getAuthUser();
         setUserData(data);
       } catch (error) {
         // se token scaduto/non valido fai logout

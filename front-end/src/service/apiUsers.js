@@ -6,48 +6,54 @@ import api from "./apiConfig";
 //#region POST
 
 // -> Nuovo utente
-export const addUser = async (registerFormData, file) => {
+export const addUser = async (registerData, file) => {
 
+    let avatar_url = "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png";
+    let avatar_id = "avt_default";
 
-    //se non presente file uso default
-    if (!file) {
-        registerFormData.append("avatar_url",
-            "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png");
-        registerFormData.append("avatar_id", "avt_default");
+    //se file presente carico su cloudinary
+    if (file) {
+        try {
+            const avtFormData = new FormData();
+            avtFormData.append("avatar", file);
 
+            const avtResponse = await api.post("/users/avatar", avtFormData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" }
+                }
+            );
 
-        //altrimenti carico su cloudinary
-    } else {
-        const addAvatar = new FormData();
-        addAvatar.append("avatar", file);
+            // riassegno valori url e id
+            avatar_url = avtResponse.data.avatar_url;
+            avatar_id = avtResponse.data.avatar_id;
 
-        const responseAvtar = await api.post("/avatar", addAvatar,
-            {
-                headers: { "Content-Type": "multipart/form-data" }
-            }
-        );
-
-        if (responseAvtar.status === 200) {
-            registerFormData.append("avatar_url", responseAvtar.data.avatar_url);
-            registerFormData.append("avatar_id", responseAvtar.data.avatar_id);
-        } else {
+        } catch (error) {
             return {
                 status: false,
-                message: "errore caricamento file "
+                message: "errore caricamento file " + error
             };
-        };
+        }
     }
 
     // crezione nuovo utente sul DB
-    const responseUser = await api.post("/users", registerFormData);
-    if (responseUser.status === 200) {
-        return { status: true ,
-            token:responseUser.token 
-        };
-    } else {
-        return { status: false, message:"errore creazione nuovo utente"};
-    }
+    const newUserData = { ...registerData, avatar_id, avatar_url };
+    try {
+        const userResponse = await api.post("/users", newUserData);
 
+        return {
+            status: true,
+            token: userResponse.data.token
+        };
+
+    } catch (error) {
+
+        await api.delete("/avatar", { params: { avatar_id: newUserData.avatar_id } })
+
+        return {
+            status: false,
+            message: "errore creazione nuovo utente" + error
+        };
+    }
 
 };
 
@@ -57,9 +63,36 @@ export const addUser = async (registerFormData, file) => {
 //#region PUT
 
 //-> Aggiorna User
-export const putUser = async (uploadFormData) => {
-    const response = await api.put(`/users/avatar`, uploadFormData);
-    return response.data;
+export const putUser = async ({ avtFormData, updateUserData }) => {
+
+    //caricamento file
+    if (avtFormData) {
+        try {
+            const avtResponse = await api.post("/users/avatar", avtFormData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" }
+                }
+            );
+            // riassegno valori url e id
+            updateUserData.avatar_url = avtResponse.data.avatar_url;
+            updateUserData.avatar_id = avtResponse.data.avatar_id;
+        } catch (error) {
+            console.error("Errore nella chiamata API: putUser. Errore caricamento file", error);
+            throw error;
+        }
+    };
+
+    //aggiornamento db
+    try {
+        const userResponse = await api.put("/users", updateUserData);
+        return userResponse.data;
+
+    } catch (error) {
+        await api.delete("/avatar", { params: { avatar_id: updateUserData.avatar_id } })
+
+        console.error("Errore nella chiamata API: putUser. Errore aggiornameno DB", error);
+        throw error;
+    }
 
 }
 //#endregion
@@ -69,41 +102,19 @@ export const putUser = async (uploadFormData) => {
 // --------------------------   GET   --------------------------------------
 //#region GET
 
-// -> Tutti gli utenti
-export const getAllUsers = async () => {
+// -> Utenti con parametri
+export const getUsersByParams = async (params = {}) => {
+    try {
 
-    const response = await api.get("/users");
-    return response.data
+        const response = await api.get("/users", { params });
+        return response.data;
 
+    } catch (error) {
+        console.error("Errore nella chiamata API: getUsersByParams", error);
+        throw error;
+    }
 };
 
-//  -> esistenza utente da email
-export const getExistedUserByEmail = async (email) => {
-
-    const response = await api.get(`/users/existedEmail/${encodeURIComponent(email)}`);
-    // endcodeURIComponent per evitare crash su caratteri speciali
-    return response.data;
-
-};
-
-
-// -> Utente da username
-export const getByUsername = async (username) => {
-
-    const response = await api.get(`/users/${username}`);
-
-    return response.data;
-
-};
-
-
-// -> Lista di username con prefisso uguale (es. mario, mario3, mariorossi)
-export const getUsernamePrefixList = async (newUsername) => {
-
-    const response = await api.get(`/users/usernamePrefix/${newUsername}`);
-    return response.data;
-
-};
 //#endregion
 
 // --------------------------   UPDATE   --------------------------------------

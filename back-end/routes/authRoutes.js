@@ -15,7 +15,7 @@ router.post("/login", async (req, res) => {
         //ricerca user tramite email
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(401).json({ message: "Utente non trobvato" });
+            return res.status(401).json({ message: "Utente non trovato" });
         }
 
         //confronto password

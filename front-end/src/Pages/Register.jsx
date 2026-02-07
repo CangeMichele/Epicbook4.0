@@ -17,7 +17,7 @@ import "./register.css";
 // *** estrapolazione dati da form e inserimento in DB ***
 export default function Register() {
   //stato contenente dati form
-  const [registerFormData, setRegisterFormData] = useState({
+  const [registerData, setRegisterData] = useState({
     firstName: "",
     lastName: "",
     birthDate: "",
@@ -48,11 +48,10 @@ export default function Register() {
   // -> Gestore cambiamento input form registrazione
   const handleChangeRegisterForm = (e) => {
     const { name, value } = e.target;
-    setRegisterFormData({
-      ...registerFormData,
+    setRegisterData({
+      ...registerData,
       [name]: value,
     });
-
     //resetta stato errore di campo modificato
     if (
       errorType === `${name}_error` ||
@@ -74,8 +73,8 @@ export default function Register() {
   // -> Gestore suggertiemnto username
   const handleSuggestUsername = (suggest) => {
     setUsernameSuggest(suggest);
-    setRegisterFormData({
-      ...registerFormData,
+    setRegisterData({
+      ...registerData,
       userName: suggest,
     });
   };
@@ -94,7 +93,10 @@ export default function Register() {
     }
 
     // esecuzione di controlli dati form
-    const newUser = await validatorUserData("register", registerFormData);
+    const newUser = await validatorUserData({
+      mode: "register",
+      data: registerData,
+    });
 
     // in caso di errore catturra l'errore
     if (!newUser.status) {
@@ -108,23 +110,27 @@ export default function Register() {
       return;
     }
 
-    // se non trova errori prosegue 
+    // se non trova errori prosegue
     setErrorType();
 
     try {
-      const responseAddUser = await addUser(newUser.formData, fileAvatar);
+      const responseAddUser = await addUser(newUser.data, fileAvatar);
+      const token = responseAddUser.token;
 
-  
-    if (!responseAddUser.token){
-      alert("errore server, riprova")
-      return
-    }
-
-      // //aggiorno token autenticazione
-      setToken(responseAddUser.token);
+      if (!token) {
+        alert("errore di login")
+        navigate("/login");
+        
+        return;
+      }
+      
+      //salvo token nel local storgae
+      localStorage.setItem("EpicBookToken", token);
+      //aggiorno token autenticazione
+      setToken(token);
 
       //reset del form
-      setRegisterFormData({
+      setRegisterData({
         firstName: "",
         lastName: "",
         birthDate: "",
@@ -137,10 +143,10 @@ export default function Register() {
       setValidatedForm(false);
       setUsernameSuggest("");
 
-      navigate(`/user/${newUser.objectData.get("userName")}`);
+      navigate(`/`);
     } catch (error) {
       console.log("errore regitrazione", error);
-      alert("errore registrazione");
+      alert("errore registrazione", error);
     }
   };
 
@@ -153,7 +159,7 @@ export default function Register() {
             type="text"
             name="firstName"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.firstName}
+            value={registerData.firstName}
             isInvalid={validatedForm && errorType === "firstName_error"}
             required
           />
@@ -168,7 +174,7 @@ export default function Register() {
             type="text"
             name="lastName"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.lastName}
+            value={registerData.lastName}
             isInvalid={validatedForm && errorType === "lastName_error"}
             required
           />
@@ -183,7 +189,7 @@ export default function Register() {
             type="date"
             name="birthDate"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.birthDate}
+            value={registerData.birthDate}
             isInvalid={validatedForm && errorType === "birthDate_error"}
             required
           />
@@ -198,7 +204,7 @@ export default function Register() {
             type="email"
             name="email"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.email}
+            value={registerData.email}
             i
             isInvalid={
               validatedForm &&
@@ -211,8 +217,8 @@ export default function Register() {
             {errorType === "invalidEmail_error"
               ? "Inserisci una email valida"
               : errorType === "existedEmail_error"
-              ? "Questa email è già stata registrata"
-              : "Inserisci email"}
+                ? "Questa email è già stata registrata"
+                : "Inserisci email"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -222,7 +228,7 @@ export default function Register() {
             type="password"
             name="password1"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.password1}
+            value={registerData.password1}
             isInvalid={validatedForm && errorType === "password_error"}
             placeholder="Minimo 8 caratteri fra cui almeno una maiuscola, un numero e un carattere speciale"
             required
@@ -238,7 +244,7 @@ export default function Register() {
             type="password"
             name="password2"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.password2}
+            value={registerData.password2}
             isInvalid={validatedForm && errorType === "mismatch_error"}
             placeholder="Ripeti password"
             required
@@ -254,10 +260,10 @@ export default function Register() {
             type="text"
             name="userName"
             onChange={handleChangeRegisterForm}
-            value={registerFormData.userName}
+            value={registerData.userName}
             isInvalid={
               validatedForm &&
-              (!registerFormData.userName || errorType === "userName_error")
+              (!registerData.userName || errorType === "userName_error")
             }
           />
           <Form.Control.Feedback type="invalid">

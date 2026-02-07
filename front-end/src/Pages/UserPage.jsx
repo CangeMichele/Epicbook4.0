@@ -5,7 +5,7 @@ import { AuthContext } from "../Context/AuthContext";
 //----- Componenti react-router-dom
 import { useParams, useNavigate } from "react-router-dom";
 // ----- API
-import { getByUsername, putUser } from "../service/apiUsers";
+import { getUsersByParams, putUser } from "../service/apiUsers";
 //----- Componenti react-bootstrap
 import {
   Col,
@@ -26,53 +26,60 @@ export default function UserPage() {
 
   //recupero nome utente dal pamars
   const params = useParams();
-  const userProfile = params.user;
-
-  //stato dati dell'utente
-  const [profileData, setProfileData] = useState(null);
-  //stato contenente immagine da caricare
-  const [imgUpload, setImgUpload] = useState(null);
+  const userInParams = params.user;
 
   //navigatore
   const navigate = useNavigate();
 
-  // ----- Estrapolazione dati utente
-  useEffect(() => {
-    //se i dati sono ancora incaricamento non fare nulla
-    if (userDataLoading) return;
+  //stato dati utente da visulaizzare
+  const [profileData, setProfileData] = useState({});
 
-    //se pagina apprtiene a utente loggato prendo i dati dal context
-    if (userData && userData.userName === userProfile) {
-      setProfileData(userData);
-      return;
-    }
+  //stato dati  utente da aggiornare
+  const [updateUserData, setUpdateUSerData] = useState({});
 
-    //altrimenti li recuopero dal db
-    const fetchProfileData = async () => {
-      try {
-        const response = await getByUsername(userProfile);
-        if (!response) {
-          // utente non trovato
-          alert("utente non trovato");
-          navigate("/");
-        } else {
-          setProfileData(response);
-        }
-      } catch (error) {
-        alert("errore nella ricerca");
-        navigate("/");
-      }
-    };
-    fetchProfileData();
-  }, [userProfile, userData, userDataLoading, navigate]);
+  //stato controllo se proprio profilo
+  const [isMe, setIsMe] = useState(false);
 
-  //uso un ref per ancorare input nascosto con simulatore click
-  const fileInputRef = useRef(null);
+  //stato contenente immagine da caricare
+  const [imgUpload, setImgUpload] = useState(null);
 
   //stato contenente url per anteprima di immmagine
   const [urlImgPreview, setUrlImgPreview] = useState(null);
+  
+  //ref per ancorare input nascosto con simulatore click
+  const fileInputRef = useRef(null);
 
-  //----- gestore cambiamento file
+
+  //estrapolazione dati utente
+  useEffect(() => {
+    if (
+      userData &&
+      userData.userName.toLowerCase() === userInParams.toLowerCase()
+    ) {
+      setIsMe(true);
+      setProfileData(userData);
+    } else {
+      setIsMe(false);
+      const fetchProfileData = async () => {
+        try {
+          const response = await getUsersByParams({ userName: userInParams });
+
+          if (response.length === 0) {
+            // navigate("/404");
+            console.log("non trovato!");
+          } else {
+            setProfileData(response[0]);
+          }
+        } catch (error) {
+          alert("errore nella ricerca");
+          navigate("/");
+        }
+      };
+      fetchProfileData();
+    }
+  }, [userData, userInParams]);
+
+  // --> gestore cambiamento file
   const handleUpdateImgChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -84,17 +91,18 @@ export default function UserPage() {
     setUrlImgPreview(url);
   };
 
-  // gestore reset file
+  // --> gestore reset file
   const handleFileReset = () => {
     setUrlImgPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  //simula il click su input file
+  //-->  simulatore il click su input file
   const clickSimulation = () => {
     fileInputRef.current.click();
   };
 
+  // --> gestore salvataggio immagine
   const handleSaveUpdateImg = async () => {
     //controllo presenza nuova immagine
     if (!imgUpload) return;
@@ -102,11 +110,10 @@ export default function UserPage() {
     //formData contenente upload
     const uploadAvatar = new FormData();
     uploadAvatar.append("avatar", imgUpload);
-    uploadAvatar.append("user_id", userData._id);
-    uploadAvatar.append("fileName", "avt_" + userData._id);
+    setUpdateUSerData({...updateUserData, user_id : userData._id});
 
     try {
-      await putUser(uploadAvatar);
+      await putUser({avtFormData: uploadAvatar, updateUserData});
     } catch (error) {
       alert(" errore nell'upload: " + error);
     }
@@ -120,19 +127,22 @@ export default function UserPage() {
         <Col md="4">
           <Card.Body style={{ position: "relative" }}>
             {/* icona moodifica immagine */}
-            <FontAwesomeIcon
-              icon={faImage}
-              style={{
-                position: "absolute",
-                bottom: "10px",
-                right: "5px",
-                fontSize: "28px",
-                textShadow: "0 0 5px black",
-                zIndex: 2,
-                cursor: "pointer",
-              }}
-              onClick={clickSimulation}
-            />
+
+            {isMe ? (
+              <FontAwesomeIcon
+                icon={faImage}
+                style={{
+                  position: "absolute",
+                  bottom: "10px",
+                  right: "5px",
+                  fontSize: "28px",
+                  textShadow: "0 0 5px black",
+                  zIndex: 2,
+                  cursor: "pointer",
+                }}
+                onClick={clickSimulation}
+              />
+            ) : null}
 
             {/* input caricamento nuova immagine */}
             <input
@@ -146,8 +156,14 @@ export default function UserPage() {
             {/* immagine profilo */}
             <Card.Img
               variant="top"
-              src={urlImgPreview ? urlImgPreview : profileData?.avatar_url}
               style={{ objectFit: "cover", border: "1px solid red" }}
+              src={urlImgPreview ? urlImgPreview : profileData?.avatar_url}
+              // se erroe caricamento allo avatr default
+              onError={(e) => {
+                e.currentTarget.onerror = null; // evita loop
+                e.currentTarget.src =
+                  "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png";
+              }}
             />
 
             {/* pulsantti gestione nuova immagine */}
@@ -187,7 +203,7 @@ export default function UserPage() {
                 Data di nascita:{" "}
                 {profileData?.birthDate
                   ? Intl.DateTimeFormat("it-IT").format(
-                      new Date(profileData.birthDate)
+                      new Date(profileData.birthDate),
                     )
                   : ""}
               </ListGroup.Item>
@@ -195,7 +211,7 @@ export default function UserPage() {
                 Data di iscrizione:{" "}
                 {profileData?.createdAt
                   ? Intl.DateTimeFormat("it-IT").format(
-                      new Date(profileData.createdAt)
+                      new Date(profileData.createdAt),
                     )
                   : ""}
               </ListGroup.Item>
@@ -203,18 +219,20 @@ export default function UserPage() {
             </ListGroup>
 
             {/* icona moodifica dati utente */}
-            <FontAwesomeIcon
-              icon={faPenToSquare}
-              style={{
-                position: "absolute",
-                bottom: "10px",
-                right: "5px",
-                fontSize: "28px",
-                textShadow: "0 0 5px black",
-                zIndex: 2,
-                cursor: "pointer",
-              }}
-            />
+            {isMe ? (
+              <FontAwesomeIcon
+                icon={faPenToSquare}
+                style={{
+                  position: "absolute",
+                  bottom: "10px",
+                  right: "5px",
+                  fontSize: "28px",
+                  textShadow: "0 0 5px black",
+                  zIndex: 2,
+                  cursor: "pointer",
+                }}
+              />
+            ) : null}
           </Card.Body>
         </Col>
       </Row>

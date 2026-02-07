@@ -3,7 +3,7 @@ import { Container, Row, Col, Alert, Card, CardGroup } from "react-bootstrap";
 //----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { AuthContext } from "../Context/AuthContext";
 import { BooksContext } from "../Context/BooksContext";
 // ----- Stilizzazione
@@ -15,7 +15,11 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { userData } = useContext(AuthContext);
   const { categoryList, setCategory } = useContext(BooksContext);
-  
+
+  //al caricamento della home azzera categoria
+  useEffect(() => {
+    setCategory(null);
+  }, []);
 
   return (
     <>
@@ -35,10 +39,10 @@ export default function HomePage() {
                 <Card
                   key={cat}
                   value={cat}
-                  onClick={() =>{
-                    setCategory(cat)
-                    navigate("/books")}
-                  }
+                  onClick={() => {
+                    setCategory(cat);
+                    navigate("/books");
+                  }}
                   className="category-card"
                 >
                   <Card.Img variant="top" src="https://picsum.photos/200/400" />

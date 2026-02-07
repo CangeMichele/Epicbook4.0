@@ -1,5 +1,5 @@
 // ---- API
-import { getExistedUserByEmail, getUsernamePrefixList } from "../service/apiUsers";
+import { getUsersByParams } from "../service/apiUsers";
 
 // *** CONTROLLI VALIDITA' DATI UTENTE***
 
@@ -70,27 +70,27 @@ async function validateEmail(inputEmail) {
     };
 
     try {
-        const response = await getExistedUserByEmail(inputEmail);
+        const response = await getUsersByParams({ email: inputEmail });
 
         // se esiste, errore
-        if (response.exist) {
+        if (response.length > 0) {
             return {
                 status: false,
                 details: "existedEmail_error",
                 message: "Questa email è già stata registrata",
             };
         }
-        
+
         //se non esiste, valido
         return { status: true, value: inputEmail };
-        
+
     } catch (error) {
-            return {
-                status: false,
-                details: "API_error",
-                message: "Errore nella registrazione. Se il problema persiste contattare l'assistenza.",
-            };
-        
+        return {
+            status: false,
+            details: "API_error",
+            message: "Errore nella registrazione. Se il problema persiste contattare l'assistenza.",
+        };
+
 
     };
 
@@ -134,7 +134,7 @@ async function validateUserName(inputUserName) {
     }
     try {
         //lista di nomi con lo stesso prefisso (es. mario , mario1, mariorossi)
-        const userNameList = await getUsernamePrefixList(inputUserName);
+        const userNameList = await getUsersByParams({ prefix: inputUserName });
 
         //se lunghezza 0 allora nessuna corrispondenza, username valido
         if (userNameList.length === 0) return { status: true, value: inputUserName };
@@ -192,40 +192,41 @@ const userDataControl = {
     userName: validateUserName,
 };
 
-export async function validatorUserData(mode = "register", userData) {
+export async function validatorUserData({ mode = "register", data }) {
+    const newUserData = data;
 
-    //formdata contenente dati utente da caricare
-    const formDataUser = new FormData();
+    //dati utente validati da caricare
+    const validatedUSerData = {};
 
     //ciclo l'oggetto tramite .entries
-    //a nome campo userData corrisponde stesso nome campo userDataControl per validaizone
+    //a nome campo newUserData corrisponde stesso nome campo userDataControl per validaizone
     for (const [field, validator] of Object.entries(userDataControl)) {
 
-        //valore userdata corrispondete al campo controllo 
-        const dataValue = userData[field];
+        //valore newUserData corrispondete al campo controllo 
+        const InputDataValue = newUserData[field];
 
         //vai al campo successivo se vuoto e si è in modifica
-        if (!dataValue && mode === "edit") continue;
+        if (!InputDataValue && mode === "edit") continue;
 
         //eseguo controlli 
         const resControl =
             field === "password"
-                ? validator(userData.password1, userData.password2)
-                : await validator(dataValue);
+                ? validator(newUserData.password1, newUserData.password2)
+                : await validator(InputDataValue);
 
         if (!resControl.status) {
             return resControl;
         } else {
             field === "password"
-                ? formDataUser.append("password", userData.password1)
-                : formDataUser.append(field, resControl.value);
+            ?validatedUSerData.password = newUserData.password1
+            :validatedUSerData[field] = resControl.value
         }
     }
 
     //se tutti i controlli ok, restituisci formdata
     return {
         status: true,
-        formData: formDataUser
+        data: validatedUSerData
     };
 
 }

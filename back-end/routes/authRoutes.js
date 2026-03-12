@@ -9,8 +9,9 @@ const router = express.Router();
 // ---------- Autenticazione utente (restituisce token di accesso) ----------
 
 router.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+        
     try {
-        const { email, password } = req.body;
 
         //ricerca user tramite email
         const user = await User.findOne({ email });

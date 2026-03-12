@@ -8,8 +8,8 @@ import api from "./apiConfig";
 // -> Nuovo utente
 export const addUser = async (registerData, file) => {
 
-    let avatar_url = "https://res.cloudinary.com/dvbmskxg4/image/upload/v1768324486/avt_default.png";
-    let avatar_id = "avt_default";
+    let avatar_url = "https://res.cloudinary.com/dvbmskxg4/image/upload/v1772792679/epicbook/avatar/avt_default.png";
+    let avatar_id = "epicbook/avatar/avt_default";
 
     //se file presente carico su cloudinary
     if (file) {
@@ -30,7 +30,7 @@ export const addUser = async (registerData, file) => {
         } catch (error) {
             return {
                 status: false,
-                message: "errore caricamento file " + error
+                message: "errore caricamento file " + error.message
             };
         }
     }
@@ -47,57 +47,18 @@ export const addUser = async (registerData, file) => {
 
     } catch (error) {
 
-        await api.delete("/avatar", { params: { avatar_id: newUserData.avatar_id } })
-
-        return {
-            status: false,
-            message: "errore creazione nuovo utente" + error
-        };
+        if (avatar_id !== "avt_default") {
+            try {
+                await api.delete("/avatar", { params: { avatar_id } });
+            } catch (cleanupError) {
+                console.error("Errore cleanup Cloudinary:", cleanupError);
+            }
+        }
     }
 
 };
 
 //#endregion
-
-// --------------------------   PUT   -------------------------------------
-//#region PUT
-
-//-> Aggiorna User
-export const putUser = async ({ avtFormData, updateUserData }) => {
-
-    //caricamento file
-    if (avtFormData) {
-        try {
-            const avtResponse = await api.post("/users/avatar", avtFormData,
-                {
-                    headers: { "Content-Type": "multipart/form-data" }
-                }
-            );
-            // riassegno valori url e id
-            updateUserData.avatar_url = avtResponse.data.avatar_url;
-            updateUserData.avatar_id = avtResponse.data.avatar_id;
-        } catch (error) {
-            console.error("Errore nella chiamata API: putUser. Errore caricamento file", error);
-            throw error;
-        }
-    };
-
-    //aggiornamento db
-    try {
-        const userResponse = await api.put("/users", updateUserData);
-        return userResponse.data;
-
-    } catch (error) {
-        await api.delete("/avatar", { params: { avatar_id: updateUserData.avatar_id } })
-
-        console.error("Errore nella chiamata API: putUser. Errore aggiornameno DB", error);
-        throw error;
-    }
-
-}
-//#endregion
-
-
 
 // --------------------------   GET   --------------------------------------
 //#region GET
@@ -115,17 +76,59 @@ export const getUsersByParams = async (params = {}) => {
     }
 };
 
-//#endregion
+// -> Controllo password
+export const getMatchPassword = async (oldPassword) => {    
+    try {
+        
+        const response = await api.get("/users/me", { params: { password: oldPassword } });        
+        return response.data;
 
-// --------------------------   UPDATE   --------------------------------------
-//#region UPDATE
-
-// -> Aggiorna avatar
-export const updateAvatar = async (avatr) => {
-
+    } catch (error) {
+        console.log("errore");
+        
+        console.error("errore nella chiamata API: getMatchPassword", error);
+        throw error;
+    }
 }
 
 //#endregion
 
+// --------------------------   PUT   -------------------------------------
+//#region PUT
+
+//-> Aggiorna Avatar
+export const putAvatar = async ({ avtFormData }) => {
+    const user_id = avtFormData.get("user_id");
+    console.log("user_id = " + user_id);
+
+    if (!avtFormData || !user_id)
+        return console.error("Errore nella chiamata API: putAvatar. Dati insufficenti")
+
+    try {
+        const response = await api.put(`/users/me/avatar`, avtFormData);
+        return response;
+
+    } catch (error) {
+        console.error("Errore nella chiamata API: getUsersByParams", error);
+        throw error;
+    }
+}
+
+// -> Aggiorna dati user
+export const putUserData = async (updateData) => {
+    console.log("questo è updateUserData", updateData);
+
+    if (!updateData) return console.error("Errore nella chiamata API: putUserData: nessun dato presente");
+
+    try {
+        const response = await api.put(`/users/me`, updateData);
+        return response;
+    } catch (error) {
+        console.error("Errore nella chiamata API: putUserData", error);
+        throw error;
+    }
+}
+
+//#endregion
 
 

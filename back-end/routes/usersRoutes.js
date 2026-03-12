@@ -1,12 +1,17 @@
 import express from "express";
 import User from "../models/User.js";
+import multer from "multer";
 
 import { generateJWT } from "../utils/jwt.js";
-import { cloudinary, cloudinaryUploader } from "../config/cloudinaryConfig.js";
+import { replaceCloudinaryImage, cloudinary } from "../config/cloudinaryConfig.js";
+import { authMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// --------------------------   POST   --------------------------------------
+// multer in RAM
+const upload = multer({ storage: multer.memoryStorage() });
+
+// --------------------------   POST   -----------------------------------
 //#region POST
 
 
@@ -23,8 +28,6 @@ router.post("/", async (req, res) => {
         //crezione e assegnazione token per login automatico
         const token = await generateJWT({ id: user._id });
         response.token = token;
-        console.log(response);
-
 
         res.status(201).json(response);
 
@@ -34,84 +37,23 @@ router.post("/", async (req, res) => {
 })
 
 // -> salvataggio file img avatar su cloudnary
-router.post("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
+router.post("/avatar", upload.single("avatar"), async (req, res) => {
+
+    if (!req.file) {
+        return res.status(400).json({ message: "Nessun file caricato" });
+    }
+
     try {
-        res.status(200).json({
-            avatar_url: req.file.path,
-            avatar_id: req.file.filename
+        const result = await replaceCloudinaryImage({
+            buffer: req.file.buffer,
         });
+        res.status(200).json({
+            avatar_url: result.secure_url,
+            avatar_id: result.public_id,
+        });
+
     } catch (error) {
         res.status(500).json({ message: "Errore upload avatar" });
-
-    }
-})
-
-// -> login con assegnazione token autenticazione
-router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return req.statusCode(401).json({ message: "Utente non trovato" });
-        }
-
-        const isMatch = await User.comparePassword(password);
-        if (!isMatch) {
-            return res.status(401).json({ message: "Password errata" });
-        }
-
-        const token = await generateJWT({ id: user._id });
-        res.json({ token, message: "Login ok" });
-
-    } catch (error) {
-        console.error("Errore nel login", error);
-        res.status(500).json({ message: "Errore del server" });
-    }
-});
-//#endregion
-
-// --------------------------   PUT   -------------------------------------
-//#region PUT
-
-// -> modifica immagine profilo
-router.put("/avatar", cloudinaryUploader.single("avatar"), async (req, res) => {
-
-    try {
-        const { user_id, fileName } = req.body;
-
-        if (req.file) {
-            //upload su clloudinary 
-            const uploaded = await new Promise((resolve, reject) => { //wrappo su una promise per usare await
-                const stream = cloudinary.uploader.upload_stream(
-                    {
-                        public_id: fileName,
-                        folder: "epicbook/avatar",
-                        overwrite: true,
-                    },
-                    (err, uploaded) => { err ? reject(err) : resolve(uploaded) }
-                );
-                //invio del file
-                stream.end(req.file.buffer);
-            });
-        }
-
-        //TO DO OGGETTO DA POPOLARE CON PARAMETRI E POI AGGIORNARE USER PASSANDO L'OGGETTO
-
-        //aggiorno utente
-        const user = await User.findByIdAndUpdate(
-            user_id,
-            {
-                avatar_url: uploaded.secure_url,
-                avatr_id: uploaded.public_id
-            },
-
-        );
-
-        res.status(200).json(user);
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
     }
 });
 
@@ -143,7 +85,7 @@ router.get("/", async (req, res) => {
         //rendo insensitive tutti i parametri di ricerca
         Object.keys(params).forEach((key) => {
             if (typeof params[key] === "string") {
-                
+
                 if (key === "prefix") {
                     //se ricerco prefisso popolo username ( regex senza $, match parziale insensitive)
                     params.userName = { $regex: `^${params[key]}`, $options: "i" };
@@ -167,6 +109,110 @@ router.get("/", async (req, res) => {
 
 });
 
+// -> Dati sensibli tramite authMiddleware
+router.get("/me", authMiddleware, async (req, res) => {
+    //recupero dati utente elaborati dal middleware
+    const userData = req.user.toObject();
+    const user_id = userData;
+
+    //recupero user tramite id
+    const user = await User.findById(user_id);
+    if (!user) {
+        return res.json({ message: "Utente non trovato" });
+    };
+
+
+    // ----> CORRISPONDENZA PASSWORD
+    const passwordToControl = req.query.password;
+
+    const isMatch = await user.comparePassword(passwordToControl);
+    if (isMatch) {
+        return res.json({ status: true, message: "Corrispondenza password" });
+    } else {
+        return res.json({ status: false, message: "Nessuna corrispondenza password" });
+    }
+
+}
+);
+
+//#endregion
+
+// --------------------------   PUT   -------------------------------------
+//#region PUT
+
+// -> AVATAR: sovrascrittura immagine avatar (stesso id, stesso url, diversa immagine)
+router.put("/me/avatar", authMiddleware, upload.single("avatar"), async (req, res) => {
+    //recupero dati utente elaborati dal middleware
+    const userData = req.user.toObject();
+    const user_id = userData._id;
+
+    if (!req.file)
+        return res.status(400).json({ message: "Dati insufficenti" });
+
+    try {
+        //recupero dati utente 
+        const user = await User.findById(user_id).select("avatar_url avatar_id");
+        if (!user) {
+            return res.status(400).json({ message: "Utente non trovato" })
+        }
+
+        //aggiornamento 
+        const result = await replaceCloudinaryImage({
+            buffer: req.file.buffer,
+            publicId: user.avatar_id === "epicbook/avatar/avt_default" ? undefined : user.avatar_id,
+        });
+
+        user.avatar_id = result.public_id;
+        user.avatar_url = result.secure_url;
+
+        // salvo aggiornamenti
+        await user.save();
+
+        res.status(200).json({
+            avatar_id: result.public_id,
+            avatar_url: result.secure_url
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Errore upload avatar" });
+    }
+});
+
+
+// -> USER
+router.put("/me", authMiddleware, async (req, res) => {
+
+    //recupero id dal middleware
+    const user_id = req.user._id.toString();
+    // recupero i dati modificati
+    const editData = req.body;
+
+    try {
+        //non uso findByIdAndUpdate perchè non applica i middleware .pre("save)
+
+        //recupero user
+        const user = await User.findById(user_id);
+
+        //verifico parametri cambiati
+        for (const [filed, value] of Object.entries(editData)) {
+
+            if (user[filed] !== value && value) {
+                user[filed] = value;
+            }
+        };
+
+        const updateUser = await user.save();
+
+        const response = updateUser.toObject();
+        delete response.password;
+
+        res.status(200).json(response);
+        
+    } catch (error) {
+        res.status(500).json({ message: "Errore upload user" });
+    }
+})
+
 //#endregion
 
 // --------------------------   DELETE   --------------------------------------
@@ -174,10 +220,18 @@ router.get("/", async (req, res) => {
 
 
 // -> Cancella Avatar da coludinary
-router.delete("/avatar", async (req, res) => {
-    const avatar_id = req.query.avatar_id;
+// router.delete("/:user_id/avatar/:avatar_id", authMiddleware, async (req, res) => {
+router.delete("/:user_id/avatar/:avatar_id", async (req, res) => {
+    const { user_id, avatar_id } = req.params;
+
+    //verifico che user_id sia uguale a id loggato
+    if (req.user._id.toString() !== user_id)
+        return res.status(403).json({ message: "Non autorizzato" })
+
     try {
-        if (!avatar_id) throw new Error("Errore eliminazione avatar, nessun id presente");
+        if (!avatar_id) {
+            return res.status(400).json("Errore eliminazione avatar, nessun id presente");
+        }
 
         if (avatar_id !== "avt_default") {
             const deleteAvatar = await cloudinary.uploader.destroy(avatar_id, { resource_type: "image" });
@@ -193,12 +247,29 @@ router.delete("/avatar", async (req, res) => {
 
 
 // -> cancella utente da id
-router.delete("/:id", async (req, res) => {
-    const _id = req.params.id;
+// router.delete("/:user_id", authMiddleware, async (req, res) => {
+router.delete("/:user_id", async (req, res) => {
+    const idToDelete = req.params.user_id;
+
+    // //verifico che user_id sia uguale a id loggato(che è dentro authMidlleware)
+    // if (req.user._id.toString() !== idToDelete)
+    //     return res.status(403).json({ message: "Non autorizzato" })
 
     try {
-        const userDelete = await User.findByIdAndDelete(_id);
-        if (!userDelete) return res.status(404).json({ message: "utente non trovato" });
+        //recupero id avatar
+        const avatarToDelete = await User.findById(idToDelete, { "avatar_id": 1 });
+
+        //elimino avatar
+        const resAvatarDelete = await cloudinary.uploader.destroy(avatarToDelete.avatar_id, { resource_type: "image" });
+        if (resAvatarDelete.result !== "ok") {
+            console.log("resAvrt:", JSON.stringify(resAvatarDelete, null, 2));
+
+            throw new Error("Errore cancellazione su cloudinary");
+        }
+
+        //elimino utente dal
+        const resUserDelete = await User.findByIdAndDelete(idToDelete);
+        if (!resUserDelete) return res.status(404).json({ message: "utente non trovato" });
         return res.status(200).json({ message: "utente eliminato con successo" });
 
     } catch (error) {

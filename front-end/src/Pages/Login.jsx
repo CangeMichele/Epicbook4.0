@@ -1,7 +1,6 @@
 //----- Componenti react
 import { useState } from "react";
-//----- Componenti react-router-dom
-import { useNavigate } from "react-router-dom";
+
 // ----- Componenti context
 import { useContext } from "react";
 import { AuthContext } from "../Context/AuthContext";
@@ -12,6 +11,7 @@ import { loginUser } from "././../service/apiAuth.js";
 import { Button, Container, Form } from "react-bootstrap";
 
 export default function Login() {
+
   const [loginFormData, setLoginFormData] = useState({
     email: "",
     password: "",

@@ -9,40 +9,39 @@ import { useNavigate } from "react-router-dom";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
- 
   const [token, setToken] = useState(null); // stato contenente token
   const isLogged = !!token; //parametro di login
   const [userData, setUserData] = useState(null); // stato dati utente
-  const[userDataLoading, setUserDataLoading] = useState(true)//stato caricamento dati utente
+  const [userDataLoading, setUserDataLoading] = useState(true); //stato caricamento dati utente
 
   const navigate = useNavigate();
 
-
-   useEffect(() => {
-    //recupero token in localStorage se presente
+  //recupero token in localStorage se presente
+  useEffect(() => {
     const savedToken = localStorage.getItem("EpicBookToken");
     if (savedToken) setToken(savedToken); //
+  }, []);
+
+  // recupero dati utente
+  useEffect(() => {
     
     // se non c'è token blocca
     if (!token) {
       return;
     }
     
-    // se non si è bloccato allora token assegnato da login o register
-
-     //estrapolazione dati utente
+    //estrapolazione dati utente
     const fetchUserData = async () => {
       try {
         const data = await getAuthUser();
         setUserData(data);
       } catch (error) {
         // se token scaduto/non valido fai logout
-        if (error.status == 401){
+        if (error.status == 401) {
           logout();
           return;
         }
         console.error("Errore recupero dati utente:", error);
-
       } finally {
         // fine caricamento
         setUserDataLoading(false);
@@ -50,7 +49,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchUserData();
-    
   }, [token]);
 
   //reset dati autenticazione
@@ -71,8 +69,9 @@ export const AuthProvider = ({ children }) => {
         setToken,
         isLogged,
         userData,
+        setUserData,
         logout,
-        userDataLoading
+        userDataLoading,
       }}
     >
       {children}

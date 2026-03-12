@@ -1,5 +1,5 @@
 // ---- API
-import { getUsersByParams } from "../service/apiUsers";
+import { getUsersByParams, getMatchPassword } from "../service/apiUsers";
 
 // *** CONTROLLI VALIDITA' DATI UTENTE***
 
@@ -36,7 +36,6 @@ function validateAge(inputBirthdate) {
             message: "Inserisci la data di nascita",
         };
     }
-
     const today = new Date();
 
     const [year, month, day] = inputBirthdate.split("-");
@@ -44,10 +43,10 @@ function validateAge(inputBirthdate) {
 
     const userAge = today.getFullYear() - userBirthDate.getFullYear();
     const monthDiff = today.getMonth() - userBirthDate.getMonth();
+    const dayDiff = today.getDate() - userBirthDate.getDate();
 
     if (userAge < 16 || //età minima per iscrizione
-        monthDiff < 0 ||
-        (monthDiff === 0 && today.getDate() < userBirthDate.getDate())
+        (userAge === 16 && (monthDiff <= 0 && dayDiff < 0))
     ) {
         return {
             status: false,
@@ -97,12 +96,26 @@ async function validateEmail(inputEmail) {
 };
 
 // --> Controllo campi password <--
-function validatePassword(inputPass1, inputPass2) {
+async function validatePassword(passwordData) {
+
+    const {password1, password2, oldPassword} = passwordData;
+    
+    if (oldPassword) {
+                const matchpassword = await getMatchPassword(oldPassword);
+        if (!matchpassword.status) {
+            return {
+                status: false,
+                details: "oldPassword_error",
+                message: "Password errata.",
+            }
+        }
+    } 
+
     const passwordControl =
-        inputPass1.length >= 8 &&
-        /[A-Z]/.test(inputPass1) &&
-        /[0-9]/.test(inputPass1) &&
-        /[^A-Za-z0-9]/.test(inputPass1);
+        password1.length >= 8 &&
+        /[A-Z]/.test(password1) &&
+        /[0-9]/.test(password1) &&
+        /[^A-Za-z0-9]/.test(password1);
 
     if (!passwordControl) {
         return {
@@ -112,7 +125,7 @@ function validatePassword(inputPass1, inputPass2) {
         };
     };
 
-    if (inputPass1 !== inputPass2) {
+    if (password1 !== password2) {
         return {
             status: false,
             details: "mismatch_password",
@@ -120,7 +133,7 @@ function validatePassword(inputPass1, inputPass2) {
         };
     };
 
-    return { status: true, value: inputPass1 };
+    return { status: true, value: password1 };
 };
 
 // --> Controllo campo userName <--
@@ -133,6 +146,7 @@ async function validateUserName(inputUserName) {
         };
     }
     try {
+
         //lista di nomi con lo stesso prefisso (es. mario , mario1, mariorossi)
         const userNameList = await getUsersByParams({ prefix: inputUserName });
 
@@ -170,6 +184,7 @@ async function validateUserName(inputUserName) {
                 message: "Username già esistente. Prova con " + suggestUserName,
                 value: suggestUserName,
             };
+
         };
 
     } catch (error) {
@@ -192,41 +207,67 @@ const userDataControl = {
     userName: validateUserName,
 };
 
-export async function validatorUserData({ mode = "register", data }) {
-    const newUserData = data;
+export async function validatorUserData(newData, oldData = {}) {
 
-    //dati utente validati da caricare
-    const validatedUSerData = {};
+    //dati validati da passare ad DB
+    const validatedUserData = {};
+    //raggruppamento dati password per controllo
+    const passwordData = {};
 
-    //ciclo l'oggetto tramite .entries
-    //a nome campo newUserData corrisponde stesso nome campo userDataControl per validaizone
-    for (const [field, validator] of Object.entries(userDataControl)) {
 
-        //valore newUserData corrispondete al campo controllo 
-        const InputDataValue = newUserData[field];
+    //ciclo i nuovi dati, confronto con quelli vecchi e applcio i controlli
+    for (const [field, value] of Object.entries(newData)) {
 
-        //vai al campo successivo se vuoto e si è in modifica
-        if (!InputDataValue && mode === "edit") continue;
+        //Se nuovo allora campo undefined quindi diverso da valore.
+        //Se modifica allora considero dato solo se è diverso dal valore di newData e che non sia vuoto
+        if (oldData[field] !== value && value) {
+            
 
-        //eseguo controlli 
-        const resControl =
-            field === "password"
-                ? validator(newUserData.password1, newUserData.password2)
-                : await validator(InputDataValue);
+            // se è un dato password raggruppa
+            if (field === "password1" || field === "password2" || field === "oldPassword") {
+                passwordData[field] = value;
 
-        if (!resControl.status) {
-            return resControl;
+                //altrimenti esegui controllo
+            } else {
+                const resControl = await userDataControl[field](value);
+                // se ok aggiungo a validatedUserData 
+                if (resControl.status) {
+                    validatedUserData[field] = resControl.value
+                } else {
+                    //altrimenti restituiscon errore
+                    return resControl;
+                }
+            }
+        }
+
+    };
+
+    //verifico password ( se nuovo ha due voci se è modifica ha in più oldPassword)
+    const nOfPassField = Object.keys(passwordData).length;
+    if (nOfPassField === 2 ||  nOfPassField ===3 ) {
+
+        const resControl = await userDataControl["password"](passwordData);
+
+        if (resControl.status) {
+            // se ok aggiungo a validatedUserData 
+            validatedUserData.password = resControl.value
         } else {
-            field === "password"
-            ?validatedUSerData.password = newUserData.password1
-            :validatedUSerData[field] = resControl.value
+            //altimenti restituisco errore
+            return resControl;
+        }
+        
+    } else if ( nOfPassField > 0 ){
+        return{
+            status:false,
+            details:"generic_password_error",
+            message:"errore nei parametri password. Riprova"
         }
     }
 
-    //se tutti i controlli ok, restituisci formdata
+
+    //se tutti i controlli ok, restituisci dati validati
     return {
         status: true,
-        data: validatedUSerData
+        data: validatedUserData
     };
-
-}
+};

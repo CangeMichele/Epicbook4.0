@@ -1,16 +1,15 @@
 //----- Componenti react
-import { useState } from "react";
+import { useState, useContext } from "react";
 // ----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
-import { useContext } from "react";
 import { AuthContext } from "../Context/AuthContext";
 // ---- Funzioni
 import { validatorUserData } from "../utils/validatorUSerData";
 // ---- API
 import { addUser } from "../service/apiUsers";
 //---- Stilizzazone
-import { Button, Container, Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./register.css";
 
@@ -30,11 +29,8 @@ export default function Register() {
   //stato contenente file da cricare
   const [fileAvatar, setFileAvatar] = useState(null);
 
-  // stato validità form
-  const [validatedForm, setValidatedForm] = useState(false);
-
   // stato tipologia errore
-  const [errorType, setErrorType] = useState();
+  const [errorType, setErrorType] = useState(null);
 
   // stato suggerimento username
   const [usernameSuggest, setUsernameSuggest] = useState("");
@@ -46,7 +42,7 @@ export default function Register() {
   const navigate = useNavigate();
 
   // -> Gestore cambiamento input form registrazione
-  const handleChangeRegisterForm = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setRegisterData({
       ...registerData,
@@ -80,11 +76,9 @@ export default function Register() {
   };
 
   // -> Gestore invio form registrazione
-  const handleRegister = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-
-    setValidatedForm(true);
 
     //controllo validità form
     if (form.checkValidity() === false) {
@@ -93,10 +87,9 @@ export default function Register() {
     }
 
     // esecuzione di controlli dati form
-    const newUser = await validatorUserData({
-      mode: "register",
-      data: registerData,
-    });
+    console.log("registerData: ", registerData);
+    
+    const newUser = await validatorUserData(registerData);
 
     // in caso di errore catturra l'errore
     if (!newUser.status) {
@@ -111,39 +104,27 @@ export default function Register() {
     }
 
     // se non trova errori prosegue
-    setErrorType();
+    setErrorType(null);
 
     try {
-      const responseAddUser = await addUser(newUser.data, fileAvatar);
-      const token = responseAddUser.token;
+      const response = await addUser(newUser.data, fileAvatar);
+
+      const token = response.token;
 
       if (!token) {
-        alert("errore di login")
+        alert("errore di login");
         navigate("/login");
-        
+
         return;
       }
-      
+
       //salvo token nel local storgae
       localStorage.setItem("EpicBookToken", token);
       //aggiorno token autenticazione
       setToken(token);
 
-      //reset del form
-      setRegisterData({
-        firstName: "",
-        lastName: "",
-        birthDate: "",
-        email: "",
-        password1: "",
-        password2: "",
-        avatar: null,
-        userName: "",
-      });
-      setValidatedForm(false);
-      setUsernameSuggest("");
-
-      navigate(`/`);
+      //navigo all apagina utente
+      navigate(`/user/${registerData.userName}`);
     } catch (error) {
       console.log("errore regitrazione", error);
       alert("errore registrazione", error);
@@ -151,16 +132,16 @@ export default function Register() {
   };
 
   return (
-    <Container>
-      <Form noValidate validated={validatedForm} onSubmit={handleRegister}>
-        <Form.Group controlId="reg-name">
+    <>
+      <Form noValidate validated={!!errorType} onSubmit={handleSubmit}>
+        <Form.Group controlId="name">
           <Form.Label>Nome</Form.Label>
           <Form.Control
             type="text"
             name="firstName"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.firstName}
-            isInvalid={validatedForm && errorType === "firstName_error"}
+            isInvalid={errorType === "firstName_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
@@ -168,14 +149,14 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-lastName">
+        <Form.Group controlId="lastName">
           <Form.Label>Cognome</Form.Label>
           <Form.Control
             type="text"
             name="lastName"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.lastName}
-            isInvalid={validatedForm && errorType === "lastName_error"}
+            isInvalid={errorType === "lastName_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
@@ -183,14 +164,14 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-birthDate">
+        <Form.Group controlId="birthDate">
           <Form.Label>Data di nascita</Form.Label>
           <Form.Control
             type="date"
             name="birthDate"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.birthDate}
-            isInvalid={validatedForm && errorType === "birthDate_error"}
+            isInvalid={errorType === "birthDate_error"}
             required
           />
           <Form.Control.Feedback type="invalid">
@@ -198,18 +179,16 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-email">
+        <Form.Group controlId="email">
           <Form.Label>Email</Form.Label>
           <Form.Control
             type="email"
             name="email"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.email}
-            i
             isInvalid={
-              validatedForm &&
-              (errorType === "invalidEmail_error" ||
-                errorType === "existedEmail_error")
+              errorType === "invalidEmail_error" ||
+              errorType === "existedEmail_error"
             }
             required
           />
@@ -222,30 +201,34 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-password1">
+        <Form.Group controlId="password1">
           <Form.Label>Password</Form.Label>
           <Form.Control
             type="password"
             name="password1"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.password1}
-            isInvalid={validatedForm && errorType === "password_error"}
-            placeholder="Minimo 8 caratteri fra cui almeno una maiuscola, un numero e un carattere speciale"
+            isInvalid={errorType === "password_error"}
+            placeholder="Inserisci nuova password"
             required
           />
+          <Form.Text className="text-muted">
+              Minimo 8 caratteri, almeno una maiuscola, un numero e un carattere
+              speciale
+            </Form.Text>
           <Form.Control.Feedback type="invalid">
             La password non rispetta i criteri di sicurezza.
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-password2">
+        <Form.Group controlId="password2">
           <Form.Label>Ripeti password</Form.Label>
           <Form.Control
             type="password"
             name="password2"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.password2}
-            isInvalid={validatedForm && errorType === "mismatch_error"}
+            isInvalid={errorType === "mismatch_password"}
             placeholder="Ripeti password"
             required
           />
@@ -254,17 +237,15 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-userName">
+        <Form.Group controlId="userName">
           <Form.Label>Username</Form.Label>
           <Form.Control
             type="text"
             name="userName"
-            onChange={handleChangeRegisterForm}
+            onChange={handleChange}
             value={registerData.userName}
-            isInvalid={
-              validatedForm &&
-              (!registerData.userName || errorType === "userName_error")
-            }
+            isInvalid={errorType === "userName_error"}
+            required
           />
           <Form.Control.Feedback type="invalid">
             {usernameSuggest !== ""
@@ -273,7 +254,7 @@ export default function Register() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group controlId="reg-avatar">
+        <Form.Group controlId="avatar">
           <Form.Label>Avatar</Form.Label>
           <Form.Control
             type="file"
@@ -285,6 +266,6 @@ export default function Register() {
 
         <Button type="submit">Registrati</Button>
       </Form>
-    </Container>
+    </>
   );
 }

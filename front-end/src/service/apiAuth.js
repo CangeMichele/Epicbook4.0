@@ -7,6 +7,8 @@ import api from "./apiConfig";
 
 // -> Login utente, assegnazione token
 export const loginUser = async (credetials) => {
+    console.log("credetials: ", credetials);
+    
     try {
         const response = await api.post("/auth/login", credetials);
         console.log(response.data);

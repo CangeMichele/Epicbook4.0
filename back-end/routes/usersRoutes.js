@@ -69,15 +69,23 @@ router.get("/", async (req, res) => {
         // lista di parametri consentiti
         const allowedParams = ["userName", "email", "prefix"];
 
-        //filtra paramentri consentiti (se vuoto res = tutti gli utenti)
-        const params = Object.fromEntries(
-            Object.entries(req.query).filter(
-                ([key]) => allowedParams.includes(key)
-            )
-        );
+        //controllo parametri consentiti
+        const params = {};
+
+        for (const [key, val] of Object.entries(req.query)) {
+            if (allowedParams.includes(key)) {
+                params[key] = val;
+            };
+        };
+
+        if (Object.keys(params).length <= 0) {
+            return res.status(400).json({ message: "Errore nei parametri di ricerca" })
+        }
+
 
         // lista di parametri univoci (solo uno fra questi)
         const uniqueParams = ["userName", "email", "prefix"];
+
         //controllo presenza parametri univoci
         const presentKeys = uniqueParams.filter(key => key in params);
         if (presentKeys.length > 1) throw new Error("Errore nei parametri univoci");
@@ -97,16 +105,14 @@ router.get("/", async (req, res) => {
             }
         });
 
-        //chiamata al DB
+        //chiamata al DB        
         const users = await User.find(params);
+
         res.json(users);
 
     } catch (error) {
         res.status(404).json({ message: error.message })
     }
-
-
-
 });
 
 // -> Dati sensibli tramite authMiddleware
@@ -194,10 +200,10 @@ router.put("/me", authMiddleware, async (req, res) => {
         const user = await User.findById(user_id);
 
         //verifico parametri cambiati
-        for (const [filed, value] of Object.entries(editData)) {
+        for (const [key, value] of Object.entries(editData)) {
 
-            if (user[filed] !== value && value) {
-                user[filed] = value;
+            if (user[key] !== value && value) {
+                user[key] = value;
             }
         };
 
@@ -207,9 +213,9 @@ router.put("/me", authMiddleware, async (req, res) => {
         delete response.password;
 
         res.status(200).json(response);
-        
+
     } catch (error) {
-        res.status(500).json({ message: "Errore upload user" });
+        res.status(500).json({ message: "Errore aggiornamento user" });
     }
 })
 

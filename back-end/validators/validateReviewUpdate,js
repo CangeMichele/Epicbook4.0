@@ -1,0 +1,69 @@
+// *** CONTROLLO DATI PER PUT ***
+
+import { reviewValidators } from "./reviewValidators";
+
+export function validateReviewUpdate(oldData, updateData) {
+
+    //lista campi modificabili
+    const allowedFields = ["comment", "rating"];
+
+    //dati validati
+    const validatedUpdateData = {};
+
+    //lista warning
+    const warnings = {};
+
+    //ciclo i nuovi dati, confronto con quelli vecchi e applcio i controlli
+    for (const [field, value] of Object.entries(updateData)) {
+
+        //se dato ha valore
+        if (value !== undefined) {
+
+            //se campo non modificabile a warning list e ignora 
+            if (!allowedFields.includes(field)) {
+                warnings[field] = {
+                    details: `${field}_not_updatable`,
+                    message: `Campo ${field} non aggiornabile.`
+                };
+                continue;
+            }
+
+            //applico validazione
+            const validationResult = reviewValidators[field](value);
+
+            //se errore blocca e restituisci 
+            if (!validationResult.status) return validationResult;
+
+            //se dato uguale ignora
+            if (oldData[field] === validationResult.value) continue;
+
+            // se modificato aggiungi
+            validatedUpdateData[field] = validationResult.value;
+        }
+    }
+
+    //se nessun campo validato segnalo come warning
+    if (Object.keys(validatedUpdateData).length === 0) {
+        return {
+            status: true,
+            warning: true,
+            details: "update_missing",
+            message: "Nessun dato da aggiornare"
+        }
+    }
+
+    // costruzione risposta
+    const response = {
+        status: true,
+        data: validatedUpdateData
+    };
+
+    //aggiungo warnings se presenti
+    if (Object.keys(warnings).length > 0) {
+        response.warning = true;
+        response.warnings = warnings;
+    }
+
+    return response;
+
+};

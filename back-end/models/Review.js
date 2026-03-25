@@ -1,23 +1,19 @@
 import { Schema, model } from "mongoose";
 
-const commentSchema = new Schema(
+const reviewSchema = new Schema(
     {
         asin: {
             type: String,
             required: true,
-            unique: true
         },
-        userID: {
+        user_id: {
             type: String,
-            required: true
-        },
-        date: {
-            type: Date,
             required: true
         },
         comment: {
             type: String,
-            required: true
+            required: true,
+            maxLength: [500, "Lunghezza massima 500 caratteri"]
         },
         rating: {
             type: Number,
@@ -28,10 +24,13 @@ const commentSchema = new Schema(
 
     {
         timestamps: true,
-        collection: "comments"
+        collection: "reviews"
     }
 );
 
-const Comment = model("Comment", commentSchema);
+// recensione univoco: uno specifico asin per uno specifico user
+reviewSchema.index({ asin: 1, user_id: 1 }, { unique: true });
 
-export default Comment;
+const Review = model("Review", reviewSchema);
+
+export default Review;

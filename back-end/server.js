@@ -8,6 +8,7 @@ import cors from "cors";
 import booksRoutes from "./routes/booksRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import reviewsRoutes from "./routes/reviewsRoutes.js"
 
 import {badRequestHandler, authorizedHandler, notFoundHandler, genericErrorHandler} from "./middlewares/errorHandlers.js"
 
@@ -26,8 +27,9 @@ mongoose
 
 // rotte chiamate API
 app.use("/api/books", booksRoutes); //libri nel DB
-app.use("/api/users", usersRoutes); //utenti nel DB
 app.use("/api/auth", authRoutes); //autenticazione
+app.use("/api/users", usersRoutes); //utenti nel DB
+app.use("/api/review", reviewsRoutes); // recensioni nel DB
 
 
 const PORT = process.env.PORT || 5001;

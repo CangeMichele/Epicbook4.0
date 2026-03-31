@@ -1,21 +1,5 @@
 // *** CONTROLLI VALIDITA' DATI RECENSIONE + PULIZIA DATI ***
 
-//--> Controllo campo ASIN
-function validateAsin(asin) {
-    if (!asin) {
-        return {
-            status: false,
-            details: "asin_error",
-            message: "Parametro asin assente."
-        };
-    }
-    //sanitizzazione dati
-    const sanitized = asin.trim().toUpperCase();
-
-    //se non si è bloccato prima, dato valido
-    return { status: true, value: sanitized };
-};
-
 //--> Controllo campo User_id
 function validateUser_id(user_id) {
     if (!user_id) {
@@ -30,6 +14,78 @@ function validateUser_id(user_id) {
 
     //se non si è bloccato prima, dato valido
     return { status: true, value: sanitized };
+};
+
+//--> Controllo campo ASIN
+function validateAsin(asin) {
+    if (!asin) {
+        return {
+            status: false,
+            details: "asin_error",
+            message: "Parametro asin assente."
+        };
+    }
+    //sanitizzazione dati
+    const sanitized = asin.trim().toUpperCase();        
+
+    //se non si è bloccato prima, dato valido
+    return { status: true, value: sanitized };
+};
+
+//--> Controllo campo rating
+function validateRating(rating) {
+    if (!rating) {
+        return {
+            status: false,
+            details: "rating_error",
+            message: "Parametro rating assente."
+        };
+    }
+    let numericRating = rating;
+    
+    if (rating === undefined || rating === null) {
+        return {
+            status: false,
+            details: "rating_error",
+            message: "Parametro rating non presente."
+        }
+    }
+    
+    //se numero controllo se nel range
+    if (typeof rating == "number") {
+        if (rating < 1 || rating > 5) {
+            return {
+                status: false,
+                details: "rating_error",
+                message: "Parametro rating fuori dal range."
+            }
+        }
+    } else if (typeof rating == "string") {
+        
+        //se è stringa lo converto in numero
+        numericRating = Number(rating);
+        
+        //errore se conversione non restituisce numero
+        if (Number.isNaN(numericRating)) {
+            return {
+                status: false,
+                details: "rating_error",
+                message: "Parametro rating non è un numero."
+            }
+            
+        }
+        
+    } else {
+        //errore se non è numerico e se non è stringa convertibilie
+        return {
+            status: false,
+            details: "rating_error",
+            message: "Parametro rating non valido."
+        }
+    }
+    
+    //se non si è bloccato prima, dato valido
+    return { status: true, value: numericRating };
 };
 
 //--> Controllo campo commento
@@ -57,7 +113,7 @@ function validateComment(comment) {
         return {
             status: true,
             warning: true,
-            value: sanitized.slice(0, 498) + "...",
+            value: sanitized.slice(0, 497) + "...",
             details: "comment_too_long",
             message: "Commento troppo lungo. Testo tagliato"
         };
@@ -66,64 +122,31 @@ function validateComment(comment) {
     //se non si è bloccato prima, dato valido
     return {
         status: true,
-        warning: false,
         value: sanitized
     };
 };
 
-//--> Controllo campo rating
-function validateRating(rating) {
-    let numericRating = rating;
-
-    if (rating === undefined || rating === null) {
+//--> Controllo campo Review_id
+function validateReview_id(review_id) {
+    if (!review_id) {
         return {
             status: false,
-            details: "rating_error",
-            message: "Parametro rating non presente."
-        }
+            details: "review_id_error",
+            message: "Parametro review_id assente."
+        };
     }
-
-    //se numero controllo se nel range
-    if (typeof rating == "number") {
-        if (rating < 1 || rating > 5) {
-            return {
-                status: false,
-                details: "rating_error",
-                message: "Parametro rating fuori dal range."
-            }
-        }
-    } else if (typeof rating == "string") {
-        
-        //se è stringa lo converto in numero
-        numericRating = Number(rating);
-        
-        //errore se conversione non restituisce numero
-        if (Number.isNaN(numericRating)) {
-            return {
-                status: false,
-                details: "rating_error",
-                message: "Parametro rating non è un numero."
-            }
-
-        }
-    } else {
-        //errore se non è numerico e se non è stringa convertibilie
-        return {
-            status: false,
-            details: "rating_error",
-            message: "Parametro rating non valido."
-        }
-    }
+    //sanitizzazione dati
+    const sanitized = review_id.trim()
 
     //se non si è bloccato prima, dato valido
-    return { status: true, value: numericRating };
+    return { status: true, value: sanitized };
 };
 
-
 export const reviewValidators = {
-    asin: validateAsin,
     user_id: validateUser_id,
+    asin: validateAsin,
+    rating: validateRating,
     comment: validateComment,
-    rating: validateRating
+    comment: validateReview_id
 };
 

@@ -1,8 +1,10 @@
 // *** CONTROLLO DATI PER POST ***
 
-import { reviewValidators } from "./reviewValidators";
+import { reviewValidators } from "./reviewValidators.js";
 
 export function validateReviewCreate(newData) {
+
+    console.log("newData: ", newData);
 
     //campi obbligatori
     const requiredFields = ["asin", "user_id", "rating", "comment"];
@@ -19,7 +21,8 @@ export function validateReviewCreate(newData) {
             return {
                 status: false,
                 details: `${field}_missing`,
-                message: `Parametro ${field} mancante.`
+                message: `Parametro ${field} mancante.`,
+                data: newData
             };
         }
     }
@@ -46,20 +49,15 @@ export function validateReviewCreate(newData) {
                 message: validationResult.message
             };
         }
-
-        // costruzione risposta
-        const response = {
-            status: true,
-            data: validatedReviewData
-        };
-
-        //aggiungo warnings se presenti
-        if (Object.keys(warnings).length > 0) {
-            response.warning = true;
-            response.warnings = warnings;
-        }
-
-        return response;
-
     }
+
+    //se non si è bloccato prima, dati validati
+    return {
+        status: true,
+        data: validatedReviewData,
+        ...(Object.keys(warnings).length > 0
+            ? { warning: true, warnings: warnings }
+            : {}
+        )
+    };
 }

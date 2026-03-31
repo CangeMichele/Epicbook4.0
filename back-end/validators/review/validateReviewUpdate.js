@@ -1,11 +1,14 @@
 // *** CONTROLLO DATI PER PUT ***
 
-import { reviewValidators } from "./reviewValidators";
+import { reviewValidators } from "./reviewValidators.js";
 
 export function validateReviewUpdate(oldData, updateData) {
 
     //lista campi modificabili
     const allowedFields = ["comment", "rating"];
+
+    //lista campi da ignorare (presenti in updateData ma non modificabil)
+    const immutableFields = ["user_id", "asin"]
 
     //dati validati
     const validatedUpdateData = {};
@@ -19,10 +22,13 @@ export function validateReviewUpdate(oldData, updateData) {
         //se dato ha valore
         if (value !== undefined) {
 
-            //se campo non modificabile a warning list e ignora 
+            //se campo non aggiornabile
+            if (immutableFields.includes(field)) continue;
+
+            //se campo non previsto aggiungo warning list e ignora 
             if (!allowedFields.includes(field)) {
                 warnings[field] = {
-                    details: `${field}_not_updatable`,
+                    details: `not_updatable`,
                     message: `Campo ${field} non aggiornabile.`
                 };
                 continue;
@@ -51,19 +57,16 @@ export function validateReviewUpdate(oldData, updateData) {
             message: "Nessun dato da aggiornare"
         }
     }
+}
 
-    // costruzione risposta
-    const response = {
-        status: true,
-        data: validatedUpdateData
-    };
-
-    //aggiungo warnings se presenti
-    if (Object.keys(warnings).length > 0) {
-        response.warning = true;
-        response.warnings = warnings;
-    }
-
-    return response;
-
+//se non si è bloccato prima, dati non validi
+return {
+    status: true,
+    data: validatedUpdateData,
+    ...(Object.keys(warnings).length > 0
+        ? { warning: true, warnings: warnings }
+        : {}
+    )
 };
+
+

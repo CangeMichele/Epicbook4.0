@@ -29,7 +29,7 @@ mongoose
 app.use("/api/books", booksRoutes); //libri nel DB
 app.use("/api/auth", authRoutes); //autenticazione
 app.use("/api/users", usersRoutes); //utenti nel DB
-app.use("/api/review", reviewsRoutes); // recensioni nel DB
+app.use("/api/reviews", reviewsRoutes); // recensioni nel DB
 
 
 const PORT = process.env.PORT || 5001;

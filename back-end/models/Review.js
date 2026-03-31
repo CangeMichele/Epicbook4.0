@@ -31,6 +31,28 @@ const reviewSchema = new Schema(
 // recensione univoco: uno specifico asin per uno specifico user
 reviewSchema.index({ asin: 1, user_id: 1 }, { unique: true });
 
+//collegamento allo schema User per estrapolare dati utente 
+reviewSchema.virtual("user", {
+    ref: "User",
+    localField: "user_id",
+    foreignField: "_id",
+    justOne: true
+});
+
+
+// abilito e pulisco dati toJson per virtual
+reviewSchema.set("toJSON", {
+    virtuals: true,
+    versionKey: false,  // rimuove __v
+    transform: (doc, ret) => {
+        delete ret.id;      // rimuove il campo id duplicato
+    }
+});
+
+// abilito dati toObject per virtual
+reviewSchema.set("toObject", { virtuals: true });
+
+
 const Review = model("Review", reviewSchema);
 
 export default Review;

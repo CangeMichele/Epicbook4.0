@@ -1,6 +1,6 @@
 // *** CONTROLLO PARAMETRI PER GET ***
 
-import { reviewValidators } from "./reviewValidators";
+import { reviewValidators } from "./reviewValidators.js";
 
 export function validateReviewQuery(query) {
 
@@ -19,8 +19,8 @@ export function validateReviewQuery(query) {
         //se parametro non consentito aggiunge a warning list e ignora 
         if (!allowedParams.includes(field)) {
             warnings[field] = {
-                details: `${field}_not_allowed`,
-                message: `Parametro ${field} non valido per ricerca.`
+                details: `field_not_allowed`,
+                message: `Parametro "${field}" non valido per ricerca.`
             };
             continue;
         }
@@ -51,18 +51,13 @@ export function validateReviewQuery(query) {
         }
     }
 
-    // costruzione risposta
-    const response = {
+// se non si è bloccato prima, dati validi
+    return  {
         status: true,
-        data: validatedQuery
+        data: validatedQuery,
+        ...(Object.keys(warnings).length > 0)
+        ? { warning: true, warnings: warnings }
+        : {}
     };
     
-    //aggiungo warnings se presenti
-    if (Object.keys(warnings).length > 0) {
-        response.warning = true;
-        response.warnings = warnings;
-    }
-
-    return response;
-
 }

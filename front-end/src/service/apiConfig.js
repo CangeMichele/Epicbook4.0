@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // ----- Configurazione endpoint axios 
-const API_URL = "http://localhost:5000/api";
+// const API_URL = "http://localhost:5000/api"; //SOLO PC
+const API_URL = "http://192.168.1.11:5000/api" //INDIRIZZO PC(cambia se cambia connessione)
 const api = axios.create({
   baseURL: API_URL,
 });

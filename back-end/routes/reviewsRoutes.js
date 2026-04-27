@@ -20,74 +20,80 @@ router.post("/", authMiddleware, async (req, res) => {
     // recupero user id da middleware
     const user_id = req.user._id.toString();
 
-    //popolo nuova recensione
-    const newReviewData = {
-        user_id: user_id,
-        ...req.body
-    };
+    //NOTE: user_id già valido perchè preso da middleware
 
     //eseguo validazione 
-    const validationResult = validateReviewCreate(newReviewData);
+    const validationResult = validateReviewCreate(req.body);
 
-    if (!validationResult.status) {
+    if (!validationResult.ok) {
         return res.status(400).json({
-            status: false,
-            details: validationResult.details,
-            message: validationResult.message,
-            data: newReviewData
+            validationResult
         })
     }
 
     const validatedReviewData = validationResult.data;
+    const reviewWarnings = validationResult.warnings;
 
     try {
+        const asin = validatedReviewData.asin;
 
         //verifico esistenza libro
-        const book = await Book.findOne({ asin: validatedReviewData.asin })
+        const book = await Book.findOne({ asin })
         if (!book) {
             return res.status(404).json({
-                status: false,
-                details: "asin_not_found",
-                message: "Errore nuova recensione: nessuna corrispondenza ASIN",
-                data: newReviewData
+                ok: false,
+                error: {
+                    code: "RESOURCE_NOT_FOUND",
+                    reason: "asin_not_found",
+                    message: "Errore nuova recensione: nessuna corrispondenza ASIN",
+                    details: { asin }
+                }
             })
 
         }
-        const newReview = new Review(validatedReviewData);
-        const savedReview = await newReview.save();
 
-        //creo risposta
-        const response = {
-            status: true,
-            data: savedReview,
-            message: "Nuova recensione aggiunta con successo."
-        }
+        //verifico se già inserio
+        const existing = await Review.findOne({ asin, user_id });
 
-        //gestisco warning
-        if (validationResult.warning) {
-            response.warning = true;
-            response.warnings = validationResult.warnings;
-        }
-
-        return res.status(201).json(response);
-
-    } catch (error) {
-        // Gestione caso asin + user_id duplicati
-        if (error.code === 11000) {
-            return res.status(400).json({
-                status: false,
-                details: "duplicate_review",
-                message: `Hai già inserito una recensione per questo libro. ${error}`,
-                data: newReviewData
+        if (existing) {
+            return res.status(409).json({
+                ok: false,
+                error: {
+                    code: "CONFLICT",
+                    reason: "duplicate_review",
+                    message: "Hai già inserito una recensione per questo libro.",
+                    details: {
+                        asin: asin,
+                        user_id: user_id,
+                        review_id: existing._id
+                    }
+                }
             });
         }
 
-        // Altri errori interni
+        //se nuovo procedo al salvataggio
+        const newReview = new Review(validatedReviewData);
+        const savedReview = await newReview.save();
+
+        //invio risposta
+        return res.status(201).json({
+            ok: true,
+            data: savedReview,
+            message: "Nuova recensione aggiunta con successo.",
+            ...(reviewWarnings
+                && Object.keys(reviewWarnings).length > 0
+                && { warnings: reviewWarnings })
+        });
+
+    } catch (error) {
         return res.status(500).json({
-            status: false,
-            details: "internal_error",
-            message: "Errore nuova recensione: " + error.message,
-            data: newReviewData
+            ok: false,
+            error: {
+                code: "INTERNAL_ERROR",
+                reason: "internal_error",
+                message: "Errore creazione nuova recensione: " + error.message,
+                details: { attempted: req.body }
+            },
         });
     }
 });
@@ -100,46 +106,41 @@ router.get("/", async (req, res) => {
     //eseguo validazione 
     const validationResult = validateReviewQuery(req.query);
 
-    if (!validationResult.status) {
+    if (!validationResult.ok) {
         return res.status(400).json({
-            status: false,
-            details: validationResult.details,
-            message: validationResult.message,
-            data: req.query
+            validationResult
         })
     }
 
     const validatedReviewQuery = validationResult.data;
+    const reviewWarnings = validationResult.warnings;
 
     try {
         //eseguo ricerca
         const reviews = await Review.find(validatedReviewQuery)
-            .populate("user", "userName avatar_url");
+            .populate("user", "userName avatar_url"); //aggiungo dati da schema user per UIX
 
-        //creo risposta
-        const response = {
-            status: true,
-            data: reviews.length === 0 ? validatedReviewQuery : reviews,
+        return res.status(200).json({
+            ok: true,
+            data: reviews.length === 0 ? [] : reviews,
             message: reviews.length === 0
                 ? "Nessun documento trovato"
                 : reviews.length === 1
                     ? "1 documento trovato"
-                    : `${reviews.length} documenti trovati`
-        }
-
-        //gestiosco warning
-        if (validationResult.warning) {
-            response.warning = true;
-            response.warnings = validationResult.warnings;
-        }
-
-        return res.status(200).json(response);
+                    : `${reviews.length} documenti trovati`,
+            ...(Object.keys(reviewWarnings).length > 0
+                && { warnings: reviewWarnings })
+        });
 
     } catch (error) {
         return res.status(500).json({
-            status: false,
-            details: "internal_error",
-            message: "Errore ricerca recensione: " + error.message
+            ok: false,
+            error: {
+                code: "INTERNAL_ERROR",
+                reason: "internal_error",
+                message: "Errore ricrerca recensione: " + error.message,
+                details: { attempted: req.body }
+            },
         });
     }
 });
@@ -149,77 +150,113 @@ router.get("/", async (req, res) => {
 // -> aggiorna commento
 router.put("/", authMiddleware, async (req, res) => {
 
-    // recupero user id da middleware
+    // recupero user_id da middleware
     const user_id = req.user._id.toString();
 
-    //recupero dati update
-    const updateReviewData = {
-        user_id: user_id,
-        asin: req.body.asin,
-        rating: req.body.rating,
-        comment: req.body.comment
+    //eseguo validazione 
+    const validationResult = validateReviewUpdate(req.body);
+
+    //se validazione non andata a buo fine
+    if (!validationResult.ok) {
+        return res.status(400).json({
+            validationResult
+        })
     }
 
-    //esegue validazione asin 
-    const validatedAsin = reviewValidators["asin"](req.body.asin);
-    if (!validatedAsin.status) {
+    //se validazione non ha prodotto dati utilizzabili
+    if (validationResult.meta?.code === "NO_CHANGE") {
+        return res.status(200).json(validationResult)
+    }
+
+    const { asin, review_id, ...changedReviewData } = validationResult.data;
+
+    //popolo parametri
+    const params = {
+        ...(asin && user_id && { asin, user_id }),
+        ...(review_id && { review_id })
+    };
+
+    const hasCombination = "asin" in params && "user_id" in params;
+    const hasReview_id = "review_id" in params;
+
+    //errore se mancano parametri ricerca
+    if (!hasCombination && !hasReview_id) {
         return res.status(400).json({
-            status: false,
-            details: validatedAsin.details,
-            message: validatedAsin.message
+            ok: false,
+            error: {
+                code: "ERROR_PARAMS",
+                reason: "empty_params",
+                message: "Nessun parametro di ricerca valido. Inserire review_id OPPURE asin",
+                details: { attempted: req.body }
+            }
         });
     }
 
     try {
-        //verifico esistenza commento
-        const dbReviewData = await Review.findOne({ asin: validatedAsin.value, user_id: user_id });
+        //recupero commento
+        const dbReviewData = await Review.findOne(params);
         if (!dbReviewData) {
             return res.status(404).json({
-                status: false,
-                details: "review_not_found",
-                message: "Nessuna corrispondenza trovata fra asin e user"
+                ok: false,
+                error: {
+                    code: "RESEARCH_ERROR",
+                    reason: "empty_research",
+                    message: "Nessuna corrispondenza trovata per parametri di ricerca",
+                    details: { params }
+                }
             })
         }
 
-        //eseguo confronto e validazione 
-        const validationResult = validateReviewUpdate(dbReviewData, updateReviewData);
+        const updateReviewData = {};
+        //comparazione dati da ggiornare
+        for (const [field, value] of Object.entries(changedReviewData)) {
 
-        if (!validationResult.status) {
-            return res.status(400).json({
-                status: false,
-                details: validationResult.details,
-                message: validationResult.message
-            })
+            //protezione da undefined
+            if (value === undefined) continue;
+            //se uguale ignora
+            if (dbReviewData[field] === value) continue;
+            //aggiungi ad aggiornamenti
+            updateReviewData[field] = value;
+
         }
 
-        if (validationResult.details === "update_missing") {
-            return res.status(200).json(validationResult);
+        //se non ci sono dati da aggiornare
+        if (Object.keys(updateReviewData).length === 0) {
+            return res.status(200).json({
+                ok: true,
+                data: {},
+                meta: {
+                    code: "NO_CHANGE",
+                    reason: "empty_update",
+                    message: "Nessun cambiamento rilevato. Risorsa immutata",
+                    details: { attempted: req.body }
+                },
+                ...(validationResult.warnings && { warnings: validationResult.warnings })
+
+            })
         }
 
         // aggiorno documento
-        Object.assign(dbReviewData, validationResult.data);
-        const updatedReview = await dbReviewData.save();
+        Object.assign(dbReviewData, updateReviewData);
+        const savedReview = await dbReviewData.save();
 
-        //creo risposta
-        const response = {
-            status: true,
-            data: updatedReview,
-            message: "Aggiornamento effettuato con successo."
-        }
+        return res.status(200).json({
+            ok: true,
+            data: savedReview,
+            message: "Aggiornamento effettuato con successo.",
+            ...(validationResult.warnings && { warnings: validationResult.warnings })
 
-        //gestisco warning
-        if (validationResult.warning) {
-            response.warning = true;
-            response.warnings = validationResult.warnings;
-        }
-
-        return res.status(200).json(response);
+        });
 
     } catch (error) {
         return res.status(500).json({
-            status: false,
-            details: "internal_error",
-            message: "Errore update recensione: " + error.message
+            ok: false,
+            error: {
+                code: "INTERNAL_ERROR",
+                reason: "internal_error",
+                message: "Errore aggiornamento recensione: " + error.message,
+                details: { attempted: req.body }
+            },
         });
     }
 });
@@ -233,55 +270,56 @@ router.delete("/", authMiddleware, async (req, res) => {
     // asin + user_id = parametri da front-end
     // review_id = parametro per debug/testing
 
-    const validationResult = validateReviewDelete(req.body)
+    const validationResult = validateReviewDelete(req.query)
 
-    if (!validationResult.status) {
+    if (!validationResult.ok) {
         return res.status(400).json(validationResult);
     }
 
     //recupero dati parametri validati
     const { asin, review_id } = validationResult.data;
-    // recupero user_id da middleware
+
+    // recupero dati da middleware
     const user_id = req.user._id.toString();
 
-    //popolo parametri ricerca
-    const params = review_id
-        ? { review_id }
-        : { asin, user_id }
+    //popolo parametri
+    const params = {
+        ...(asin && user_id && { asin, user_id }),
+        ...(review_id && { review_id })
+    };
 
     try {
-
         //procedo con eliminazione
         const deletedReview = await Review.findOneAndDelete(params);
 
         if (!deletedReview) {
             return res.status(404).json({
-                status: false,
-                details: "review_not_found",
-                message: "Nessuna corrispondenza trovata",
-                data: params
+                ok: false,
+                error: {
+                    code: "RESEARCH_ERROR",
+                    reason: "empty_research",
+                    message: "Nessuna corrispondenza trovata per parametri di ricerca",
+                    details: { params }
+                }
             })
         }
 
         return res.status(200).json({
-            status: true,
+            ok: true,
             message: "Recensione eliminata con successo",
-            data: {
-                review_id: deletedReview._id,
-                asin: deletedReview.asin,
-                user_id: deletedReview.user_id
-            },
-             ...(validationResult.warning && validationResult.warnings
-                ? { warning: true, warnings: validationResult.warnings }
-                : {}
-            )
+            data: { deletedReview },
+            ...(validationResult.warnings && { warnings: validationResult.warnings })
         });
 
     } catch (error) {
         return res.status(500).json({
-            status: false,
-            details: "internal_error",
-            message: "Errore eliminazione recensione: " + error.message
+            ok: false,
+            error: {
+                code: "INTERNAL_ERROR",
+                reason: "internal_error",
+                message: "Errore eliminazione recensione: " + error.message,
+                details: { attempted: req.body }
+            },
         });
     }
 

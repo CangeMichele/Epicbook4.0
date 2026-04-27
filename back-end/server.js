@@ -40,7 +40,8 @@ app.use(authorizedHandler);
 app.use(notFoundHandler);
 app.use(genericErrorHandler);
 
-app.listen(PORT, () => {
+// app.listen(PORT, () => {  SOLO SU PC
+app.listen(PORT, "0.0.0.0", () => { //SU TUTTI I DISPOSITI SULLA STESSA RETE
     console.log(`Server acceso alla porta ${PORT}`);
     console.log("Sono disponibli i seguenti end points");
     console.table(endpoints(app));

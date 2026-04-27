@@ -4,7 +4,8 @@ import { reviewValidators } from "./reviewValidators.js";
 
 export function validateReviewCreate(newData) {
 
-    console.log("newData: ", newData);
+    //campi ammessi
+    const allowedFields = ["asin", "user_id", "rating", "comment"];
 
     //campi obbligatori
     const requiredFields = ["asin", "user_id", "rating", "comment"];
@@ -15,28 +16,50 @@ export function validateReviewCreate(newData) {
     //lista warning
     const warnings = {};
 
-    //controllo presenza campi obbligatori
-    for (const field of requiredFields) {
-        if (!(field in newData)) {
-            return {
-                status: false,
-                details: `${field}_missing`,
-                message: `Parametro ${field} mancante.`,
-                data: newData
-            };
-        }
-    }
-
-
-    //ciclo i nuovi dati e applcio i controlli
+    //validazione dati
     for (const [field, value] of Object.entries(newData)) {
 
-        //eseguo controllo di quel campo 
-        const validationResult = reviewValidators[field](value);
+        //se campo non ammesso warning e continua
+        if (!allowedFields.includes(field)) {
+            warnings[field] = {
+                code: "VALIDATION_WARNING",
+                reason: "not_allowed_field",
+                message: `Parametro ${field} non ammesso.`,
+                details: {
+                    field,
+                    value,
+                    allowed: false
+                },
+            };
+            continue;
+        }
 
-        // se errore blocca e restituisci 
-        if (!validationResult.status) {
-            return validationResult;
+        //controllo presenza validatore 
+        const validator = reviewValidators[field];
+        if (!validator) {
+            return {
+                ok: false,
+                error: {
+                    code: "SCHEMA_ERROR",
+                    reason: "missing_validator",
+                    message: `Nessuna validazione possibile per campo ${field}.`,
+                    details: { field }
+                },
+            }
+        };
+
+        //eseguo validazione
+        const validationResult = validator(value);
+
+        // se errore in validazione
+        if (!("value" in validationResult)) {
+            return {
+                ok: false,
+                error: {
+                    code: "VALIDATION_ERROR",
+                    ...validationResult
+                }
+            }
         }
 
         //aggiungi campo a dati validati
@@ -44,20 +67,30 @@ export function validateReviewCreate(newData) {
 
         //se presente gestisco il warning
         if (validationResult.warning) {
-            warnings[field] = {
-                details: validationResult.details,
-                message: validationResult.message
-            };
+            warnings[field] = validationResult.warning;
         }
     }
 
+    //controllo campi obbligatori
+    for (const field of requiredFields) {
+        if (!(field in validatedReviewData)) {
+            return {
+                ok: false,
+                error: {
+                    code: "VALIDATION_ERROR",
+                    reason: "required_field_missing",
+                    message: `Parametro obbligatorio mancante: ${field}`,
+                    details: { field }
+                }
+            }
+        }
+    }
+
+
     //se non si è bloccato prima, dati validati
     return {
-        status: true,
+        ok: true,
         data: validatedReviewData,
-        ...(Object.keys(warnings).length > 0
-            ? { warning: true, warnings: warnings }
-            : {}
-        )
-    };
+        ...(Object.keys(warnings).length > 0 && { warnings })
+    }
 }

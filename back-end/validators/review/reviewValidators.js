@@ -1,152 +1,221 @@
 // *** CONTROLLI VALIDITA' DATI RECENSIONE + PULIZIA DATI ***
 
-//--> Controllo campo User_id
-function validateUser_id(user_id) {
-    if (!user_id) {
+// --------------------------   TYPE   --------------------------------------
+//--> Validatore di stringhe 
+function stringValidator(value, fieldName, { transforms } = {}) {
+    //controllo presenza valore
+    if (value == null) {
         return {
-            status: false,
-            details: "userId_error",
-            message: "Parametro user_id assente."
+            reason: "empty",
+            message: `Parametro ${fieldName} assente.`,
+            details: { field: fieldName }
         };
     }
-    //sanitizzazione dati
-    const sanitized = user_id.trim()
 
-    //se non si è bloccato prima, dato valido
-    return { status: true, value: sanitized };
+    //controllo tipologia dato
+    if (typeof value !== "string") {
+        return {
+            reason: "invalid_type",
+            message: `Parametro ${fieldName} non valido.`,
+            details: { field: fieldName, value }
+        };
+    }
+
+    //normalizzazione dati
+    let sanitized = value.trim();
+
+    //nuovo controllo presenza valore
+    if (sanitized === "") {
+        return {
+            reason: "empty",
+            message: `Parametro ${fieldName} vuoto.`,
+            details: { field: fieldName }
+        };
+    }
+
+    //esegue istruzioni se presenti in array di trasformazione
+    if (Array.isArray(transforms) && transforms.length > 0) {
+        //cicla transforms e aggiorna valore secondo la funzione inserita
+        for (const fn of transforms) {
+            sanitized = fn(sanitized);
+        }
+    }
+
+    //restituisco stringa controllata e pulita
+    return { value: sanitized };
+}
+
+
+//--> Validatore numerico intero
+function integerNumberValidator(value, fieldName) {
+
+    //controllo presenza valore
+    if (value == null) {
+        return {
+            reason: "empty",
+            message: `Parametro ${fieldName} assente.`,
+            details: { field: fieldName }
+        };
+    }
+
+    //accetto solo numeri interi o stringhe (per tentativo conversione)
+    if (typeof value !== "string" && typeof value !== "number") {
+        return {
+            reason: "invalid_type",
+            message: `Parametro ${fieldName} non valido.`,
+            details: { field: fieldName, value }
+        };
+    }
+
+    let numericValue = value;
+
+    //se stringa
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+
+        //controllo prensenza valore
+        if (trimmed === "") {
+            return {
+                reason: "empty",
+                message: `Parametro ${fieldName} vuoto.`,
+                details: { field: fieldName }
+            };
+        }
+
+        //coversione stringa
+        numericValue = Number(trimmed);
+    }
+
+    //controllo se numero
+    if (Number.isNaN(numericValue)) {
+        return {
+            reason: "invalid_number",
+            message: `Parametro ${fieldName} non è un numero.`,
+            details: { field: fieldName, value }
+        };
+    }
+
+    //controllo se numero intero
+    if (!Number.isInteger(numericValue)) {
+        return {
+            reason: "invalid_integer",
+            message: `Parametro ${fieldName} non è un numero intero.`,
+            details: { field: fieldName, value }
+        };
+    }
+
+    //restituisco numero valido
+    return { value: numericValue };
+}
+
+// --------------------------   FIELD   --------------------------------------
+
+//--> Controllo campo user_id
+function validateUser_id(user_id) {
+
+    const istructions = [(v) => v.toLowerCase()];
+
+    //verifico input
+    const result = stringValidator(
+        user_id,
+        "user_id",
+        { transforms: istructions }
+    )
+
+    return result;
 };
 
 //--> Controllo campo ASIN
 function validateAsin(asin) {
-    if (!asin) {
-        return {
-            status: false,
-            details: "asin_error",
-            message: "Parametro asin assente."
-        };
-    }
-    //sanitizzazione dati
-    const sanitized = asin.trim().toUpperCase();        
 
-    //se non si è bloccato prima, dato valido
-    return { status: true, value: sanitized };
+    const istructions = [(v) => v.toUpperCase()];
+
+    //verifico input
+    const result = stringValidator(
+        asin,
+        "asin",
+        { transforms: istructions }
+    )
+
+    return result;
 };
 
 //--> Controllo campo rating
 function validateRating(rating) {
-    if (!rating) {
+    //verifico input
+    const result = integerNumberValidator(rating, "rating");
+
+    if (!("value" in result)) return result
+
+    const numericRating = result.value;
+
+    //controllo se numero fuori range
+    if (numericRating < 1 || numericRating > 5) {
         return {
-            status: false,
-            details: "rating_error",
-            message: "Parametro rating assente."
-        };
-    }
-    let numericRating = rating;
-    
-    if (rating === undefined || rating === null) {
-        return {
-            status: false,
-            details: "rating_error",
-            message: "Parametro rating non presente."
-        }
-    }
-    
-    //se numero controllo se nel range
-    if (typeof rating == "number") {
-        if (rating < 1 || rating > 5) {
-            return {
-                status: false,
-                details: "rating_error",
-                message: "Parametro rating fuori dal range."
-            }
-        }
-    } else if (typeof rating == "string") {
-        
-        //se è stringa lo converto in numero
-        numericRating = Number(rating);
-        
-        //errore se conversione non restituisce numero
-        if (Number.isNaN(numericRating)) {
-            return {
-                status: false,
-                details: "rating_error",
-                message: "Parametro rating non è un numero."
-            }
-            
-        }
-        
-    } else {
-        //errore se non è numerico e se non è stringa convertibilie
-        return {
-            status: false,
-            details: "rating_error",
-            message: "Parametro rating non valido."
+            reason: "out_of_range",
+            message: "Parametro rating fuori dal range.",
+            details: { field: "rating", value: rating }
         }
     }
-    
-    //se non si è bloccato prima, dato valido
-    return { status: true, value: numericRating };
+
+    return result
 };
 
 //--> Controllo campo commento
 function validateComment(comment) {
-    if (!comment) {
-        return {
-            status: false,
-            details: "comment_error",
-            message: "Parametro comment assente."
-        };
+
+    let istructions = [];
+    let warning = null;
+
+    if (typeof comment === "string" && comment.trim().length > 500) {
+        //essegui taglio
+        istructions = [
+            (v) => v.slice(0, 497),
+            (v) => v + "..."
+        ];
+        //popola warning
+        warning = {
+            reason: "text_too_long",
+            message: "Commento troppo lungo. Testo tagliato",
+            details: {
+                field: "comment",
+                originalLength: comment.length,
+                maxLength: 500
+            }
+        }
     }
 
-    if (typeof comment !== "string") {
-        return {
-            status: false,
-            details: "comment_isnot_string",
-            message: "Parametro comment non è una stringa."
-        };
-    }
+    //verifico input
+    const result = stringValidator(comment, "comment", { transforms: istructions });
 
-    //sanitizzazione dati
-    let sanitized = comment.trim();
+    if (!("value" in result)) return result;
 
-    if (sanitized.length > 500) {
-        return {
-            status: true,
-            warning: true,
-            value: sanitized.slice(0, 497) + "...",
-            details: "comment_too_long",
-            message: "Commento troppo lungo. Testo tagliato"
-        };
-    }
+    return { ...result, ...(warning && { warning }) };
 
-    //se non si è bloccato prima, dato valido
-    return {
-        status: true,
-        value: sanitized
-    };
 };
 
 //--> Controllo campo Review_id
 function validateReview_id(review_id) {
-    if (!review_id) {
-        return {
-            status: false,
-            details: "review_id_error",
-            message: "Parametro review_id assente."
-        };
-    }
-    //sanitizzazione dati
-    const sanitized = review_id.trim()
 
-    //se non si è bloccato prima, dato valido
-    return { status: true, value: sanitized };
+    const istructions = [(v) => v.toLowerCase()];
+
+    //verifico input
+    const result = stringValidator(
+        review_id,
+        "review_id",
+        { transforms: istructions }
+    )
+
+    return result;
 };
+
+// --------------------------   EXPORT WRAPPER   --------------------------------------
 
 export const reviewValidators = {
     user_id: validateUser_id,
     asin: validateAsin,
     rating: validateRating,
     comment: validateComment,
-    comment: validateReview_id
+    review_id: validateReview_id
 };
 

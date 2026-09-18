@@ -1,7 +1,7 @@
 //----- Componenti react
 import { createContext, useEffect, useState } from "react";
 // ----- API
-import { getAuthUser } from "../service/apiAuth";
+import { getAuthUser } from "../api/apiAuth.js";
 //----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 

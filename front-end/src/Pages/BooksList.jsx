@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { BooksContext } from "../Context/BooksContext";
 // ----- API
-import { getBooksByFilter } from "../service/apiBooks";
+import { getBooksByFilter } from "../api/apiBooks";
 //----- Componenti react-bootstrap
 import { Row, Col, Button, Form } from "react-bootstrap";
 

@@ -7,7 +7,7 @@ import { Row, Col, Card } from "react-bootstrap";
 //----- Componenti App
 import CommentsArea from "../Components/comments_area/CommentsArea";
 // ----- API
-import { getBook } from "../service/apiBooks";
+import { getBook } from "../api/apiBooks.js";
 
 
 /*** pagina libro specifico  ***/

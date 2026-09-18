@@ -4,7 +4,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../../Context/AuthContext";
 //----- Componenti react-bootstrap
 // ----- API
-import { putAvatar } from "../../service/apiUsers";
+import { putAvatar } from "../../api/apiUsers";
 import { Card, ButtonGroup, ToggleButton } from "react-bootstrap";
 // ----- Componenti Font Awesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

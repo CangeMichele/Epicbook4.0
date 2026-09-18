@@ -8,9 +8,9 @@ import cors from "cors";
 import booksRoutes from "./routes/booksRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import reviewsRoutes from "./routes/reviewsRoutes.js"
+// import reviewsRoutes from "./routes/reviewsRoutes.js"
 
-import {badRequestHandler, authorizedHandler, notFoundHandler, genericErrorHandler} from "./middlewares/errorHandlers.js"
+import { notFoundHandler, genericErrorHandler} from "./middlewares/errorHandlers.js"
 
 dotenv.config();
 
@@ -29,14 +29,12 @@ mongoose
 app.use("/api/books", booksRoutes); //libri nel DB
 app.use("/api/auth", authRoutes); //autenticazione
 app.use("/api/users", usersRoutes); //utenti nel DB
-app.use("/api/reviews", reviewsRoutes); // recensioni nel DB
+// app.use("/api/reviews", reviewsRoutes); // recensioni nel DB
 
 
 const PORT = process.env.PORT || 5001;
 
 //errorHandler mmiddleware
-app.use(badRequestHandler);
-app.use(authorizedHandler);
 app.use(notFoundHandler);
 app.use(genericErrorHandler);
 

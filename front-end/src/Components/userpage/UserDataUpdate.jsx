@@ -4,11 +4,9 @@ import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
 import { AuthContext } from "../../Context/AuthContext";
-// ---- Funzioni
-import { validatorUserData } from "../../utils/validatorUSerData";
 // ----- API
-import { putUserData } from "../../service/apiUsers";
-import { loginUser } from "../../service/apiAuth.js";
+import { editUser } from "../../api/apiUsers.js";
+import { loginUser } from "../../api/apiAuth.js";
 //----- Componenti react-bootstrap
 import { Form, Row, Col, Button } from "react-bootstrap";
 
@@ -27,16 +25,23 @@ export default function UserDataUpdate({ setIsEditing }) {
     birthDate: userData.birthDate,
     email: userData.email,
     oldPassword: "",
+    password0: "",
     password1: "",
-    password2: "",
   });
 
-  // stato tipologia errore
-  const [errorType, setErrorType] = useState(null);
-  // stato suggerimento username
-  const [usernameSuggest, setUsernameSuggest] = useState("");
+  //stato errore respose back-end
+  const [formError, setFormError] = useState(null);
+  //stato errore front-end
+  const [validated, setValidated] = useState(false);
 
-  // -> Gestore cambiamento input form
+  //valore required campi password (se un valore è true allora tutti campi required)
+  const requiredPassword = Boolean(
+    dataEdit.OldPassw || 
+    dataEdit.password0 || 
+    dataEdit.password1,
+  );
+
+  // -> GESTORE cambiamento input form modifica
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDataEdit({
@@ -45,72 +50,55 @@ export default function UserDataUpdate({ setIsEditing }) {
     });
 
     //resetta stato errore di campo modificato
-    if (
-      errorType === `${name}_error` ||
-      errorType === "invalidEmail_error" ||
-      errorType === "existedEmail_error" ||
-      errorType === "mismatch_error"
-    ) {
-      setErrorType(null);
+    if (formError.details?.field === name) {
+      setFormError(null);
     }
   };
 
-  // -> Gestore suggertiemnto username
-  const handleSuggestUsername = (suggest) => {
-    setUsernameSuggest(suggest);
-    setDataEdit({
-      ...dataEdit,
-      userName: suggest,
-    });
+  // -> GESTORE cambiamento file
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileAvatar(file);
   };
 
-  // -> Gestore invio form di aggiornamento
+  // -> GESTORE invio form di aggiornamento
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const form = e.currentTarget;
 
-    // esecuzione di controlli dati form
-    const validatedUserData = await validatorUserData(dataEdit, userData);
-    console.log("update: ", validatedUserData);
+    console.log("birthDate: ", dataEdit.birthDate);
 
-    // in caso di errore catturra l'errore
-    if (!validatedUserData.status) {
-      setErrorType(validatedUserData.details);
+    setValidated(true);
 
-      //se errore username suggerisci
-      if (validatedUserData.details === "userName_error") {
-        handleSuggestUsername(validatedUserData.value);
-      }
-
+    //controllo validità form
+    if (form.checkValidity() === false) {
+      e.stopPropagation();
       return;
     }
-
-    //se non ci sono modifiche esci
-    if (!validatedUserData.data) {
-      setIsEditing(false);
-      return;
-    }
-
-    // se non trova errori prosegue
-    setErrorType(null);
 
     try {
-      const response = await putUserData(validatedUserData.data);
+      const response = await editUser(dataEdit);
 
-      // se password modificata aggiorna token
-      if (validatedUserData.password) {
+      //catturo l'errore se presente
+      if (!response.ok) {
+        setFormError(response.error);
+        return;
+      }
+
+      //SE PASSWORD MODIFICATA
+      if (dataEdit.password0) {
+        //utilizzo funzioni AuthContext per aggiornare token
         resetAuth();
-
         //ottenimento token
         const resToken = await loginUser(loginFormData);
-
         // aggiungo valore token con context
         setToken(resToken.token);
-
         //salvataggio token  in localStorage
         localStorage.setItem("EpicBookToken", resToken.token);
       }
 
-      //se cambia username cambia nome della pagina, quindi ricarica
+      // SE USERNAME MODIFICATO cambia nome della pagina, quindi ricarica
       if (response.data.userName !== userData.userName) {
         //aggiorna dati utenti nel context
         setUserData(response.data);
@@ -122,15 +110,15 @@ export default function UserDataUpdate({ setIsEditing }) {
       //chiudi modifica
       setIsEditing(false);
     } catch (error) {
-      console.log("errore regitrazione", error);
-      alert("errore registrazione");
+      console.log("errore modifica", error);
+      alert("errore modifica");
     }
   };
 
   return (
     <>
       {/* form editing */}
-      <Form noValidate validated={!!errorType} onSubmit={handleSubmit}>
+      <Form noValidate validated={validated} onSubmit={handleSubmit}>
         <Form.Group as={Row} className="mb-3" controlId="username">
           <Form.Label column md={3}>
             Username
@@ -140,14 +128,12 @@ export default function UserDataUpdate({ setIsEditing }) {
               type="text"
               name="userName"
               onChange={handleChange}
-              value={dataEdit?.userName || ""}
-              isInvalid={errorType === "userName_error"}
-              placeholder="Nuovo username"
+              value={dataEdit.userName}
+              isInvalid={formError?.details?.field === "userName"}
+              required
             />
             <Form.Control.Feedback type="invalid">
-              {usernameSuggest !== ""
-                ? `Username esitente ! prova con ${usernameSuggest}`
-                : "Inserisci un username"}
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
@@ -162,8 +148,12 @@ export default function UserDataUpdate({ setIsEditing }) {
               name="firstName"
               onChange={handleChange}
               value={dataEdit.firstName}
-              placeholder="mofifica username"
+              isInvalid={formError?.details?.field === "firstName"}
+              required
             />
+            <Form.Control.Feedback type="invalid">
+              {formError?.message || "Campo vuoto"}
+            </Form.Control.Feedback>
           </Col>
         </Form.Group>
 
@@ -177,8 +167,13 @@ export default function UserDataUpdate({ setIsEditing }) {
               name="lastName"
               onChange={handleChange}
               value={dataEdit.lastName}
+              isInvalid={formError?.details?.field === "lastName"}
+              required
             />
           </Col>
+          <Form.Control.Feedback type="invalid">
+            {formError?.message || "Campo vuoto"}
+          </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group as={Row} className="mb-3" controlId="birthDate">
@@ -190,11 +185,14 @@ export default function UserDataUpdate({ setIsEditing }) {
               type="date"
               name="birthDate"
               onChange={handleChange}
-              value={dataEdit.birthDate.slice(0, 10)}
-              isInvalid={errorType === "birthDate_error"}
+              value={
+                dataEdit.birthDate ? dataEdit.birthDate.substring(0, 10) : ""
+              }
+              isInvalid={formError?.details?.field === "birthDate"}
+              required
             />
             <Form.Control.Feedback type="invalid">
-              Devi avere almeno 16 anni per poterti registrare !
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
@@ -209,17 +207,11 @@ export default function UserDataUpdate({ setIsEditing }) {
               name="email"
               onChange={handleChange}
               value={dataEdit.email}
-              isInvalid={
-                errorType === "invalidEmail_error" ||
-                errorType === "existedEmail_error"
-              }
+              isInvalid={formError?.details?.field === "email"}
+              required
             />
             <Form.Control.Feedback type="invalid">
-              {errorType === "invalidEmail_error"
-                ? "inserisci una email valida"
-                : errorType === "existedEmail_error"
-                  ? "questa email è già stata registrata"
-                  : "errore email "}
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
@@ -234,11 +226,12 @@ export default function UserDataUpdate({ setIsEditing }) {
               name="oldPassword"
               onChange={handleChange}
               value={dataEdit.oldPassword}
-              isInvalid={errorType === "oldPassword_error"}
+              isInvalid={formError?.details?.field === "oldPassword"}
               placeholder="Password attuale"
+              required={requiredPassword}
             />
             <Form.Control.Feedback type="invalid">
-              Le password non corretta.
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
@@ -250,18 +243,19 @@ export default function UserDataUpdate({ setIsEditing }) {
           <Col md={9}>
             <Form.Control
               type="password"
-              name="password1"
+              name="password0"
               onChange={handleChange}
-              value={dataEdit.password1}
-              isInvalid={errorType === "password_error"}
-              placeholder="Inserisci nuova passsword"
+              value={dataEdit.password0}
+              isInvalid={formError?.details?.field === "password"}
+              placeholder="Inserisci nuova password"
+              required={requiredPassword}
             />
             <Form.Text className="text-muted mt-">
               Minimo 8 caratteri, almeno una maiuscola, un numero e un carattere
               speciale
             </Form.Text>
             <Form.Control.Feedback type="invalid">
-              La password non rispetta i criteri di sicurezza.
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
@@ -273,19 +267,24 @@ export default function UserDataUpdate({ setIsEditing }) {
           <Col md={9}>
             <Form.Control
               type="password"
-              name="password2"
+              name="password1"
               onChange={handleChange}
-              value={dataEdit.password2}
-              isInvalid={errorType === "mismatch_password"}
+              value={dataEdit.password1}
+              isInvalid={
+                formError?.details?.field === "password" &&
+                formError?.code === "BUSINESS_ERROR"
+              }
               placeholder="Ripeti password"
+              required={requiredPassword}
             />
             <Form.Control.Feedback type="invalid">
-              Le password non coincidono.
+              {formError?.message || "Campo vuoto"}
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
 
         <Button type="submit">Modifica</Button>
+        <Button onClick={() => setIsEditing(false)}>annulla</Button>
       </Form>
     </>
   );

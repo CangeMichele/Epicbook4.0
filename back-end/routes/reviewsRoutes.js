@@ -44,6 +44,7 @@ router.post("/", authMiddleware, async (req, res) => {
                 ok: false,
                 error: {
                     code: "RESOURCE_NOT_FOUND",
+                    context:"review",
                     reason: "asin_not_found",
                     message: "Errore nuova recensione: nessuna corrispondenza ASIN",
                     details: { asin }
@@ -60,6 +61,7 @@ router.post("/", authMiddleware, async (req, res) => {
                 ok: false,
                 error: {
                     code: "CONFLICT",
+                    context:"review",
                     reason: "duplicate_review",
                     message: "Hai già inserito una recensione per questo libro.",
                     details: {
@@ -78,6 +80,7 @@ router.post("/", authMiddleware, async (req, res) => {
         //invio risposta
         return res.status(201).json({
             ok: true,
+            context:"review",
             data: savedReview,
             message: "Nuova recensione aggiunta con successo.",
             ...(reviewWarnings
@@ -90,6 +93,7 @@ router.post("/", authMiddleware, async (req, res) => {
             ok: false,
             error: {
                 code: "INTERNAL_ERROR",
+                context:"review",
                 reason: "internal_error",
                 message: "Errore creazione nuova recensione: " + error.message,
                 details: { attempted: req.body }
@@ -122,6 +126,7 @@ router.get("/", async (req, res) => {
 
         return res.status(200).json({
             ok: true,
+            context:"review",
             data: reviews.length === 0 ? [] : reviews,
             message: reviews.length === 0
                 ? "Nessun documento trovato"
@@ -137,6 +142,7 @@ router.get("/", async (req, res) => {
             ok: false,
             error: {
                 code: "INTERNAL_ERROR",
+                context:"review",
                 reason: "internal_error",
                 message: "Errore ricrerca recensione: " + error.message,
                 details: { attempted: req.body }
@@ -185,6 +191,7 @@ router.put("/", authMiddleware, async (req, res) => {
             ok: false,
             error: {
                 code: "ERROR_PARAMS",
+                context:"review",
                 reason: "empty_params",
                 message: "Nessun parametro di ricerca valido. Inserire review_id OPPURE asin",
                 details: { attempted: req.body }
@@ -200,6 +207,7 @@ router.put("/", authMiddleware, async (req, res) => {
                 ok: false,
                 error: {
                     code: "RESEARCH_ERROR",
+                    context:"review",
                     reason: "empty_research",
                     message: "Nessuna corrispondenza trovata per parametri di ricerca",
                     details: { params }
@@ -224,6 +232,7 @@ router.put("/", authMiddleware, async (req, res) => {
         if (Object.keys(updateReviewData).length === 0) {
             return res.status(200).json({
                 ok: true,
+                context:"review",
                 data: {},
                 meta: {
                     code: "NO_CHANGE",
@@ -242,6 +251,7 @@ router.put("/", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             ok: true,
+            context:"review",
             data: savedReview,
             message: "Aggiornamento effettuato con successo.",
             ...(validationResult.warnings && { warnings: validationResult.warnings })
@@ -251,6 +261,7 @@ router.put("/", authMiddleware, async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             ok: false,
+            context:"review",
             error: {
                 code: "INTERNAL_ERROR",
                 reason: "internal_error",

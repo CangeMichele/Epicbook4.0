@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useContext } from "react";
 import { AuthContext } from "../Context/AuthContext";
 // ----- API
-import { loginUser } from "././../service/apiAuth.js";
+import { loginUser } from "../api/apiAuth";
 
 //----- Componenti react-bootstrap
 import { Button, Container, Form } from "react-bootstrap";

@@ -5,55 +5,86 @@ import multer from "multer";
 import { generateJWT } from "../utils/jwt.js";
 import { replaceCloudinaryImage, cloudinary } from "../config/cloudinaryConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+// ---- services
+import { createUser } from "../services/user/action/createUser.js";
+import { getUser } from "../services/user/action/getUser.js";
+import { updateUser } from "../services/user/action/updateUser.js";
+//----- utils
+import errorStatusMap from "../utils/errorStatusMap.js";
 
 const router = express.Router();
 
 // multer in RAM
 const upload = multer({ storage: multer.memoryStorage() });
 
+
 // --------------------------   POST   -----------------------------------
 //#region POST
 
-
 // -> creazione nuovo utente
-router.post("/", async (req, res) => {
-    try {
-        const user = new User(req.body);
-        const newUser = await user.save();
+router.post("/", upload.single("avatar"), async (req, res) => {
 
-        //rimozine password dalla risposta (sicurezza)
-        const response = newUser.toObject();
-        delete response.password;
-
-        //crezione e assegnazione token per login automatico
-        const token = await generateJWT({ id: user._id });
-        response.token = token;
-
-        res.status(201).json(response);
-
-    } catch (error) {
-        res.status(500).json({ message: "errore api" + error.message });
-    }
-})
-
-// -> salvataggio file img avatar su cloudnary
-router.post("/avatar", upload.single("avatar"), async (req, res) => {
-
-    if (!req.file) {
-        return res.status(400).json({ message: "Nessun file caricato" });
-    }
+    let avatar_url = "https://res.cloudinary.com/dvbmskxg4/image/upload/v1772792679/epicbook/avatar/avt_default.png";
+    let avatar_id = "epicbook/avatar/avt_default";
 
     try {
-        const result = await replaceCloudinaryImage({
-            buffer: req.file.buffer,
-        });
-        res.status(200).json({
-            avatar_url: result.secure_url,
-            avatar_id: result.public_id,
-        });
+        //strutturazione dati password     
+        const { password0, password1, ...rest } = req.body;
+        const userData = {
+            ...rest,
+            passwordList: { newPasswords: [password0, password1] },
+        };
+
+
+        let avatarData = null;
+
+        //caricamento avatar se file presente
+        if (req.file) {
+
+            const uploaded = await replaceCloudinaryImage({
+                buffer: req.file.buffer,
+            });
+
+            if (!uploaded) {
+                return res.status(400).json({ message: "Salvataggio fallito. Errore upload avatar" });
+            }
+
+            avatarData = {
+                avatar_url: uploaded.secure_url,
+                avatar_id: uploaded.public_id,
+            };
+        }
+
+        //elaborazioen dati e salvataggio in DB
+        const result = await createUser({ ...userData, ...avatarData });
+
+        if (!result.ok) {
+            //eliminazione avatar appena caricato
+            if (avatarData?.avatar_id && avatarData.avatar_id !== "avt_default") {
+                const deleteAvatar = await cloudinary.uploader.destroy(
+                    avatarData.avatar_id,
+                    { resource_type: "image" }
+                );
+            }
+            //restituisci errore
+            const status = errorStatusMap[result.error.code] || 500;
+            return res.status(status).json(result);
+        }
+
+        return res.status(201).json(result);
 
     } catch (error) {
-        res.status(500).json({ message: "Errore upload avatar" });
+
+        console.error(error);
+
+        res.status(500).json({
+            ok: false,
+            error: {
+                code: "SERVER_ERROR",
+                reason: "user_query_server",
+                message: error.message
+            }
+        });
     }
 });
 
@@ -62,84 +93,50 @@ router.post("/avatar", upload.single("avatar"), async (req, res) => {
 // --------------------------   GET   --------------------------------------
 //#region GET
 
-// -> Utenti con parametri
+// -> ricerca utenti per parametri
 router.get("/", async (req, res) => {
+
     try {
-
-        // lista di parametri consentiti
-        const allowedParams = ["userName", "email", "prefix"];
-
-        //controllo parametri consentiti
-        const params = {};
-
-        for (const [key, val] of Object.entries(req.query)) {
-            if (allowedParams.includes(key)) {
-                params[key] = val;
-            };
-        };
-
-        if (Object.keys(params).length <= 0) {
-            return res.status(400).json({ message: "Errore nei parametri di ricerca" })
+        const result = await getUser(req.query);
+        if (!result.ok) {
+            const status = errorStatusMap[result.error.code] || 500;
+            return res.status(status).json(result);
         }
 
-
-        // lista di parametri univoci (solo uno fra questi)
-        const uniqueParams = ["userName", "email", "prefix"];
-
-        //controllo presenza parametri univoci
-        const presentKeys = uniqueParams.filter(key => key in params);
-        if (presentKeys.length > 1) throw new Error("Errore nei parametri univoci");
-
-        //rendo insensitive tutti i parametri di ricerca
-        Object.keys(params).forEach((key) => {
-            if (typeof params[key] === "string") {
-
-                if (key === "prefix") {
-                    //se ricerco prefisso popolo username ( regex senza $, match parziale insensitive)
-                    params.userName = { $regex: `^${params[key]}`, $options: "i" };
-                    delete params.prefix;
-                } else {
-                    //altrimenti regola per tutti (match preciso insensitive)
-                    params[key] = { $regex: `^${params[key]}$`, $options: "i" };
-                }
-            }
-        });
-
-        //chiamata al DB        
-        const users = await User.find(params);
-
-        res.json(users);
+        return res.status(200).json(result);
 
     } catch (error) {
-        res.status(404).json({ message: error.message })
+        console.error(error);
+
+        res.status(500).json({
+            ok: false,
+            error: {
+                code: "SERVER_ERROR",
+                reason: "user_query_server",
+                message: error.message
+            }
+        });
     }
+
 });
 
-// -> Dati sensibli tramite authMiddleware
-router.get("/me", authMiddleware, async (req, res) => {
-    //recupero dati utente elaborati dal middleware
-    const userData = req.user.toObject();
-    const user_id = userData;
+// -> confronto password
+router.get("/me/check-password", authMiddleware, async (req, res) => {
 
-    //recupero user tramite id
-    const user = await User.findById(user_id);
-    if (!user) {
-        return res.json({ message: "Utente non trovato" });
-    };
+    const { password } = req.body;
 
+    if (!password)
+        return res.status(400).json({
+            status: false,
+            messagge: "Nessuna password inserita."
+        });
 
-    // ----> CORRISPONDENZA PASSWORD
-    const passwordToControl = req.query.password;
+    const isMatch = await req.user.comparatePassword(password);
 
-    const isMatch = await user.comparePassword(passwordToControl);
-    if (isMatch) {
-        return res.json({ status: true, message: "Corrispondenza password" });
-    } else {
-        return res.json({ status: false, message: "Nessuna corrispondenza password" });
-    }
-
-}
-);
+    return res.json({
+        status: isMatch
+    });
+});
 
 //#endregion
 
@@ -191,33 +188,42 @@ router.put("/me", authMiddleware, async (req, res) => {
     //recupero id dal middleware
     const user_id = req.user._id.toString();
     // recupero i dati modificati
-    const editData = req.body;
+    const dataEdit = req.body;
+    //estrapolazione dati password     
+    const { password0, password1,oldPassword, ...rest } = req.body;
+
+    dataEdit = {
+        ...rest,
+        _id: user_id,
+        passwordList: {
+            newPasswords: [password0, password1],
+            oldPassword
+        }
+    };
 
     try {
-        //non uso findByIdAndUpdate perchè non applica i middleware .pre("save)
+        //elaborazione dati e salvataggio in DB
+        const response = await updateUser(dataEdit);
 
-        //recupero user
-        const user = await User.findById(user_id);
-
-        //verifico parametri cambiati
-        for (const [key, value] of Object.entries(editData)) {
-
-            if (user[key] !== value && value) {
-                user[key] = value;
-            }
-        };
-
-        const updateUser = await user.save();
-
-        const response = updateUser.toObject();
-        delete response.password;
-
+        if (!response.ok) {
+            const status = errorStatusMap[response.error.code] || 500;
+            return res.status(status).json(response);
+        }
         res.status(200).json(response);
 
     } catch (error) {
-        res.status(500).json({ message: "Errore aggiornamento user" });
+        console.error(error);
+
+        res.status(500).json({
+            ok: false,
+            error: {
+                code: "SERVER_ERROR",
+                reason: "user_query_server",
+                message: error.message
+            }
+        });
     }
-})
+});
 
 //#endregion
 

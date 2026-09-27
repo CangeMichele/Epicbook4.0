@@ -6,7 +6,7 @@ import { userDataValidators } from "../../../validators/user/userDataValidators.
 // ----- business rules
 import { dataUserBusinessRules } from "../rules/dataUserBusinessRules.js";
 // ----- queries
-import { getUserById, saveUpdateUser  } from "../queries/userQueries.js";
+import { getUserById, saveUpdateUser } from "../queries/userQueries.js";
 
 export async function updateUser(dataEdit) {
 
@@ -39,14 +39,17 @@ export async function updateUser(dataEdit) {
 
     //validazione dati
     const validated = validatedInputData(dataEdit, schema);
+    if (!validated.ok) return validated;
 
     //estrapolazione dati dal DB
     const dbUserData = await getUserById(dataEdit._id);
 
-    //rimodellazione passwordList
-    validated.data.passwordList = {
-        ...validated.data.passwordList,
-        dbUserData //mi porto il documento mongoose per utilizzarne i metodi
+    //se presenti password, agginge dbUserData per utilizzare i metodi del documento mongoose
+    if (dataEdit.passwordList) {
+        validated.data.passwordList = {
+            ...validated.data.passwordList,
+            dbUserData
+        }
     }
 
     //applico controlli su dati validati
@@ -61,7 +64,7 @@ export async function updateUser(dataEdit) {
 
         //verifica cambiamenti
         //NB: passwordList già gestita da validator e da businessRules
-        if (field !== "passwordList"  && oldData[field] === value) {
+        if (field !== "passwordList" && oldData[field] === value) {
             warnings[field] = {
                 reason: "not_change",
                 accetpted: false,

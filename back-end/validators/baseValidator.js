@@ -141,6 +141,9 @@ export function dateValidator(field, value) {
     if (typeof value === "string") {
         const isoInput = value;
         const isoParsed = parsedDate.toISOString().slice(0, 10);
+        console.log("isoInput: ", isoInput);
+        console.log("isoParsed: ", isoParsed);
+        
 
         if (isoInput !== isoParsed) {
             return {

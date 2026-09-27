@@ -17,6 +17,7 @@ export async function saveNewUser(newUserData) {
         const response = newUser.toObject();
         delete response.password;
 
+        //generazione token JWT tramite id
         const token = await generateJWT({ id: newUser._id });
 
         return {

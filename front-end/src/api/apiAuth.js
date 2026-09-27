@@ -34,7 +34,7 @@ export const getAuthUser = async () => {
  
         console.error("Errore nella richiesta getAuthUser:", error);
         throw error;
-    }
+    }t
 
 };
 //#endregion

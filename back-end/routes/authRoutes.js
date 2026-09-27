@@ -1,7 +1,7 @@
 import express from "express";
-import { generateJWT } from "../utils/jwt.js";
-
 import User from "../models/User.js";
+
+import { generateJWT } from "../utils/jwt.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -10,40 +10,70 @@ const router = express.Router();
 
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
-        
+
     try {
 
         //ricerca user tramite email
         const user = await User.findOne({ email });
+
         if (!user) {
-            return res.status(401).json({ message: "Utente non trovato" });
+            return res.status(401).json({
+                ok: false,
+                error: {
+                    code: "AUTH_ERROR",
+                    reason: "user_not_found",
+                    message: "Utente non trovato",
+                    details: { field: "email" }
+                }
+            })
         }
 
         //confronto password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: "Password errata" });
+            return res.status(401).json({
+                ok: false,
+                error: {
+                    code: "AUTH_ERROR",
+                    reason: "mismatch_password",
+                    message: "Password errata",
+                    details: { field: "password" }
+
+                }
+            });
+
         }
 
         //generazione token JWT tramite id
-        const token = await generateJWT({ id:user._id });
-        res.json({ token, message: "Login effettuatto" });
+        const token = await generateJWT({ id: user._id });
+        return res.json({
+            ok: true,
+            token: token,
+            message: "Login effettuatto"
+        });
 
     } catch (error) {
         console.error({ message: "Errore nel login", error });
-        res.status(500).json({ message: "Errore server" });
+        res.status(500).json({
+            ok: false,
+            error: {
+                code: "SERVER_ERROR",
+                reason: "auth",
+                message: "Errore server",
+            }
+        });
     }
 
 });
 
 
 // ---------- Recupero dati utente ----------
-router.get("/me", authMiddleware, (req, res) =>{
-    
+router.get("/me", authMiddleware, (req, res) => {
+
     //recupero dati utente elaborati dal middleware
-    const userData = req.user.toObject(); 
+    const userData = req.user.toObject();
     // rimuovo password dalla risposta
-    delete userData.password; 
+    delete userData.password;
 
     //restituisco dati utente
     res.json(userData);

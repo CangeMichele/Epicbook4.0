@@ -40,8 +40,8 @@ function validateLasttName(lastName) {
 };
 
 //--> Controllo per campo birthdate
-function validateBirthDate(birthdate) {
-    const result = dateValidator("birthdate", birthdate);
+function validateBirthDate(birthDate) {
+    const result = dateValidator("birthDate", birthDate);
     return result;
 };
 
@@ -63,11 +63,8 @@ function validatePasswordList(passwordList) {
         { name: "symbol", fn: v => /[!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|`]+/.test(v) }
     ];
 
-    //verifica validità nuova password
-    console.log("passwordLIst", passwordList);
-    
-    const newPasswords = passwordList.newPasswords;
-    const reference = newPasswords[0];
+    //verifica validità nuova password   
+    const reference = passwordList.newPasswords[0];
 
     const resNew = newPasswordValidator(reference, rules);
     if (!("value" in resNew)) return resNew;
@@ -92,7 +89,7 @@ function validatePasswordList(passwordList) {
     return {
         value: {
             newPasswords,
-            oldPassword
+            ...(oldPassword ? oldPassword : {})
         }
     }
 

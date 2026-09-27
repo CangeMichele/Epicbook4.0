@@ -187,18 +187,21 @@ router.put("/me", authMiddleware, async (req, res) => {
 
     //recupero id dal middleware
     const user_id = req.user._id.toString();
-    // recupero i dati modificati
-    const dataEdit = req.body;
-    //estrapolazione dati password     
-    const { password0, password1,oldPassword, ...rest } = req.body;
+    //estrapolazione dati dal body     
+    const { password0, password1, oldPassword, ...rest } = req.body;
+    //indicatore presenza campi password 
+    const isEditPassword = Boolean(oldPassword || password0 || password1);
 
-    dataEdit = {
+    //costruzione dati
+    const dataEdit = {
+        user_id,
         ...rest,
-        _id: user_id,
-        passwordList: {
-            newPasswords: [password0, password1],
-            oldPassword
-        }
+        ...(isEditPassword ? {
+            passwordList: {
+                newPasswords: [password0, password1],
+                oldPassword
+            }
+        } : {})
     };
 
     try {

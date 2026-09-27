@@ -12,10 +12,10 @@ import { faImage } from "@fortawesome/free-regular-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 
 
-export default function UpdateAvatar({isMyProfile,displayedUser }) {
+export default function UpdateAvatar({isMyProfile,displayedUser, setTriggerToast }) {
   
    //recupero dati utente dal context
-  const { userData, setUserData } = useContext(AuthContext);
+  const { userLogged, setUserLogged } = useContext(AuthContext);
 
   //ref per ancorare input nascosto con simulatore click
   const fileInputRef = useRef(null);
@@ -73,30 +73,31 @@ export default function UpdateAvatar({isMyProfile,displayedUser }) {
 
     //popolo formdata
     uploadFormData.append("avatar", imgUpload);
-    uploadFormData.append("avatar_id", userData.avatar_id);
-    uploadFormData.append("user_id", userData._id);
+    uploadFormData.append("avatar_id", userLogged.avatar_id);
+    uploadFormData.append("user_id", userLogged._id);
 
     try {
       const resultPutAvt = await putAvatar({ avtFormData: uploadFormData });
 
-      //aggiorno userData
-      setUserData((prev) => ({
+      //aggiorno userLogged
+      setUserLogged((prev) => ({
         ...prev,
         avatar_url: resultPutAvt.avatar_url,
         avatar_id: resultPutAvt.avatar_id,
       }));
     } catch (error) {
-      alert(" errore nell'upload: " + error);
+      setTriggerToast(true)
+      console.log(" errore nell'upload: " + error);
     }
     setImgUpload(null);
   };
 
   //--> cancella preview aspettando che usardata sia aggiornato
   useEffect(() => {
-    if (userData?.avatar_url) {
+    if (userLogged?.avatar_url) {
       setUrlImgPreview(null);
     }
-  }, [userData?.avatar_url]);
+  }, [userLogged?.avatar_url]);
 
   return (
     <>

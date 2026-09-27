@@ -20,7 +20,7 @@ export default function MyNavbar() {
   const location = useLocation();
 
   // recupero dal context
-  const { isLogged, logout, userData } = useContext(AuthContext);
+  const { isLogged, logout, userLogged } = useContext(AuthContext);
 
   //gestore click su categoria
   const handleCategoryClick = (selectedCat) => {
@@ -57,12 +57,12 @@ export default function MyNavbar() {
           </Nav>
 
           <Nav>
-            {isLogged && userData ? (
+            {isLogged && userLogged ? (
               <NavDropdown
-                title={userData?.firstName || "Utente"}
+                title={userLogged?.firstName || "Utente"}
                 id="basic-nav-dropdown"
               >
-                <NavDropdown.Item href={`/user/${userData.userName}`}>
+                <NavDropdown.Item href={`/user/${userLogged.userName}`}>
                   Profilo
                 </NavDropdown.Item>
                 <NavDropdown.Divider />

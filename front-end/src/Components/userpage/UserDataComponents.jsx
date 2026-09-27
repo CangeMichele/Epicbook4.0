@@ -6,7 +6,7 @@ import { Card } from "react-bootstrap";
 import UserDataView from "./UserDataView";
 import UserDataUpdate from "./UserDataUpdate";
 
-export default function UpdateUserData({ isMyProfile, displayedUser }) {
+export default function UpdateUserData({ isMyProfile, displayedUser, setTriggerToast }) {
   //stato se modalità editing
   const [isEditing, setIsEditing] = useState(false);
 
@@ -25,6 +25,7 @@ export default function UpdateUserData({ isMyProfile, displayedUser }) {
             <UserDataUpdate
               displayedUser={displayedUser}
               setIsEditing={setIsEditing}
+              setTriggerToast={setTriggerToast}
             />
           </>
         ) : (

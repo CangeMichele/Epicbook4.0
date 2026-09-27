@@ -3,7 +3,6 @@ import { Navigate, Routes, Route } from "react-router-dom";
 // ----- Componenti context
 import { useContext } from "react";
 import { AuthContext } from "../../Context/AuthContext";
-
 //----- Componenti react-bootstrap
 import { Container } from "react-bootstrap";
 // ----- Stilizzazione
@@ -23,7 +22,7 @@ import UserNotFound from "../../Pages/UserNotFound";
 // ----- MyMain.jsx
 export default function MyMain() {
   //recupero dal context
-  const { isLogged, userData } = useContext(AuthContext);
+  const { isLogged, userLogged } = useContext(AuthContext);  
 
   return (
     <Container className="mainContainer">
@@ -42,8 +41,8 @@ export default function MyMain() {
           element={
             !isLogged ? (
               <Login />
-            ) : userData?.userName ? (
-              <Navigate to={`/user/${userData.userName}`} />
+            ) : userLogged?.userName ? (
+              <Navigate to={`/user/${userLogged.userName}`} />
             ) : null
           }
         />

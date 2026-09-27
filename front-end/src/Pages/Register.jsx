@@ -4,9 +4,9 @@ import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
 import { AuthContext } from "../Context/AuthContext";
-
 // ---- API
 import { addUser } from "../api/apiUsers";
+
 //---- Stilizzazone
 import { Button, Form, InputGroup, Toast } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -16,6 +16,7 @@ import "./register.css";
 
 // *** ESTRAPOLAZIONE DATI DA FORM E SALAVATaGGIO IN DB ***
 export default function Register() {
+  
   //stato contenente dati form
   const [registerData, setRegisterData] = useState({
     firstName: "",
@@ -27,10 +28,14 @@ export default function Register() {
     userName: "",
   });
 
-  //stato errore respose back-end
-  const [formError, setFormError] = useState(null);
-  //stato errore front-end
-  const [validated, setValidated] = useState(false);
+  //recupero stato token dal context
+  const { setToken } = useContext(AuthContext);
+  
+  //stato errore validità dati
+  const [dataValidationError, setDataValidationError] = useState(null);
+
+  //stato validità form
+  const [isFormValid, setIsFormValid] = useState(false);
 
   //stato contenente file da cricare
   const [fileAvatar, setFileAvatar] = useState(null);
@@ -41,8 +46,6 @@ export default function Register() {
   //stato attiva/chiudi toast errore
   const [triggerToast, setTriggerToast] = useState(false);
 
-  //recupero stato token dal context
-  const { setToken } = useContext(AuthContext);
 
   //navigatore
   const navigate = useNavigate();
@@ -55,8 +58,8 @@ export default function Register() {
       [name]: value,
     });
     //resetta stato errore di campo modificato
-    if (formError?.details?.field === name) {
-      setFormError(null);
+    if (dataValidationError?.details?.field === name) {
+      setDataValidationError(null);
     }
   };
 
@@ -72,7 +75,7 @@ export default function Register() {
     e.preventDefault();
     const form = e.currentTarget;
 
-    setValidated(true);
+    setIsFormValid(true);
 
     //controllo validità form
     if (form.checkValidity() === false) {
@@ -87,11 +90,11 @@ export default function Register() {
       //in caso di errore
       if (!response.ok) {
         
-        //se dal form cattuto errore
+        //se erore validazione dati catturo errore
         if (response.error.code === "VALIDATION_ERROR") {
-          setFormError(response.error);
+          setDataValidationError(response.error);
         }else{
-          //altrimenti tost errore 
+          //se altro tipo di errore attivo toast
           setTriggerToast(true);
         }
         return;
@@ -127,7 +130,7 @@ export default function Register() {
         bg="danger"
         onClose={() => {
           setTriggerToast(false);
-          setValidated(false);
+          setIsFormValid(false);
         }}
       >
         <Toast.Header closeButton>
@@ -136,7 +139,7 @@ export default function Register() {
         <Toast.Body>Si è verificato un errore. Riprova più tardi.</Toast.Body>
       </Toast>
 
-      <Form noValidate validated={validated} onSubmit={handleSubmit}>
+      <Form noValidate validated={isFormValid} onSubmit={handleSubmit}>
         <Form.Group controlId="name">
           <Form.Label>Nome</Form.Label>
           <Form.Control
@@ -144,11 +147,11 @@ export default function Register() {
             name="firstName"
             onChange={handleChange}
             value={registerData.firstName}
-            isInvalid={formError?.details?.field === "firstName"}
+            isInvalid={dataValidationError?.details?.field === "firstName"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -159,11 +162,11 @@ export default function Register() {
             name="lastName"
             onChange={handleChange}
             value={registerData.lastName}
-            isInvalid={formError?.details?.field === "lastName"}
+            isInvalid={dataValidationError?.details?.field === "lastName"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -174,11 +177,11 @@ export default function Register() {
             name="birthDate"
             onChange={handleChange}
             value={registerData.birthDate}
-            isInvalid={formError?.details?.field === "birthdate"}
+            isInvalid={dataValidationError?.details?.field === "birthDate"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -189,11 +192,11 @@ export default function Register() {
             name="email"
             onChange={handleChange}
             value={registerData.email}
-            isInvalid={formError?.details?.field === "email"}
+            isInvalid={dataValidationError?.details?.field === "email"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -205,7 +208,7 @@ export default function Register() {
               name="password0"
               onChange={handleChange}
               value={registerData.password0}
-              isInvalid={formError?.details?.field === "password0"}
+              isInvalid={dataValidationError?.details?.field === "password0"}
               placeholder="Inserisci nuova password"
               required
             />
@@ -224,7 +227,7 @@ export default function Register() {
             speciale
           </Form.Text>
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -236,14 +239,14 @@ export default function Register() {
             onChange={handleChange}
             value={registerData.password1}
             isInvalid={
-              formError?.details?.field === "password" &&
-              formError?.code === "BUSINESS_ERROR"
+              dataValidationError?.details?.field === "password" &&
+              dataValidationError?.code === "BUSINESS_ERROR"
             }
             placeholder="Ripeti password"
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -254,11 +257,11 @@ export default function Register() {
             name="userName"
             onChange={handleChange}
             value={registerData.userName}
-            isInvalid={formError?.details?.field === "userName"}
+            isInvalid={dataValidationError?.details?.field === "userName"}
             required
           />
           <Form.Control.Feedback type="invalid">
-            {formError?.message || "Campo vuoto"}
+            {dataValidationError?.message || "Campo vuoto"}
           </Form.Control.Feedback>
         </Form.Group>
 

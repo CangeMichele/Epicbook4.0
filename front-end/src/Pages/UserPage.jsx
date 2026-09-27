@@ -5,16 +5,14 @@ import { AuthContext } from "../Context/AuthContext";
 //----- Componenti react-router-dom
 import { useParams, useNavigate } from "react-router-dom";
 //----- Componenti react-bootstrap
-import { Col, Row, Card} from "react-bootstrap";
+import { Col, Row, Card, Toast } from "react-bootstrap";
 // ----- Componenti app
 import AvatarComponents from "../Components/userpage/AvatarComponents";
 import UserDataComponents from "../Components/userpage/UserDataComponents";
 
-
 export default function UserPage() {
-
   //recupero dati utente dal context
-  const { userData } = useContext(AuthContext);
+  const { userLogged } = useContext(AuthContext);
 
   //recupero nome utente dal params
   const params = useParams();
@@ -26,17 +24,21 @@ export default function UserPage() {
   //stato dati utente da visulaizzare
   const [profileData, setProfileData] = useState({});
 
+  //stato attiva/chiudi toast errore
+  const [triggerToast, setTriggerToast] = useState(false);
+
   //valore di controllo se utente loggato
-  const isMyProfile =
-    userData &&
-    userData.userName.toLowerCase() === userInParams.toLocaleLowerCase();
+  const isMyProfile = Boolean(
+    userLogged &&
+    userLogged.userName.toLowerCase() === userInParams.toLocaleLowerCase(),
+  );
 
   //dati da visualizzare
-  const displayedUser = isMyProfile ? userData : profileData;
+  const displayedUser = isMyProfile ? userLogged : profileData;
 
   //estrapolazione dati utente
   useEffect(() => {
-    if (!userData) return;
+    if (!userLogged) return;
 
     if (!isMyProfile) {
       const fetchProfileData = async () => {
@@ -57,24 +59,41 @@ export default function UserPage() {
       };
       fetchProfileData();
     }
-  }, [userData, userInParams]);
+  }, [userLogged, userInParams]);
 
   return (
     <>
+      <Toast
+        show={triggerToast}
+        className="position-fixed top-10 start-50 translate-middle-x mt-3 text-bg-danger"
+        bg="danger"
+        onClose={() => {
+          setTriggerToast(false);
+          setValidated(false);
+        }}
+      >
+        <Toast.Header closeButton>
+          <strong className="me-auto">Errore</strong>
+        </Toast.Header>
+        <Toast.Body>Si è verificato un errore. Riprova più tardi.</Toast.Body>
+      </Toast>
+
       <Card style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.1)", padding: "20px" }}>
         <Row>
           <Col md="4">
             <AvatarComponents
+              setTriggerToast={setTriggerToast}
               isMyProfile={isMyProfile}
               displayedUser={displayedUser}
             />
           </Col>
-          
+
           <Col md="8">
-          <UserDataComponents
-            isMyProfile={isMyProfile}
-            displayedUser={displayedUser}
-          />
+            <UserDataComponents
+              setTriggerToast={setTriggerToast}
+              isMyProfile={isMyProfile}
+              displayedUser={displayedUser}
+            />
           </Col>
         </Row>
       </Card>

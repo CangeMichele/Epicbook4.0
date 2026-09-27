@@ -24,12 +24,7 @@ export default function UserDataView({
         <ListGroup.Item>Nome: {displayedUser?.firstName}</ListGroup.Item>
         <ListGroup.Item>Cognome: {displayedUser?.lastName}</ListGroup.Item>
         <ListGroup.Item>
-          Data di nascita:{" "}
-          {displayedUser?.birthDate
-            ? Intl.DateTimeFormat("it-IT").format(
-                new Date(displayedUser.birthDate),
-              )
-            : ""}
+          Data di nascita:{displayedUser?.birthDate}
         </ListGroup.Item>
         <ListGroup.Item>
           Data di iscrizione:{" "}

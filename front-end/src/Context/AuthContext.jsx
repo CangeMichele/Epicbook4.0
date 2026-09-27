@@ -8,11 +8,20 @@ import { useNavigate } from "react-router-dom";
 // contesto di autenticazione
 export const AuthContext = createContext();
 
+// *** CONTEXT DI GESTIONE TOKEN E DATI UTENTE LOGGATO  ***
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null); // stato contenente token
-  const isLogged = !!token; //parametro di login
-  const [userData, setUserData] = useState(null); // stato dati utente
-  const [userDataLoading, setUserDataLoading] = useState(true); //stato caricamento dati utente
+  
+  // stato contenente token
+  const [token, setToken] = useState(null); 
+  
+  // stato dati utente
+  const [userLogged, setUserLogged] = useState(null); 
+
+  //stato caricamento dati utente
+  const [userDataLoading, setUserDataLoading] = useState(true); 
+
+  //parametro di login
+  const isLogged = !!token; 
 
   const navigate = useNavigate();
 
@@ -23,8 +32,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // recupero dati utente
-  useEffect(() => {
-    
+  useEffect(() => { 
+
     // se non c'è token blocca
     if (!token) {
       return;
@@ -32,12 +41,21 @@ export const AuthProvider = ({ children }) => {
     
     //estrapolazione dati utente
     const fetchUserData = async () => {
-      try {
+      try {      
         const data = await getAuthUser();
-        setUserData(data);
+        //coversione birthDate da formato DB a front-end
+        const formattedDate = data.birthDate.slice(0, 9);
+        //caricamento user
+        const {birthDate, ...rest} = data;
+        setUserLogged({
+          ...rest,
+          birthDate: formattedDate
+        });
+        
       } catch (error) {
+        
         // se token scaduto/non valido fai logout
-        if (error.status == 401) {
+        if (error.response.status == 401) {
           logout();
           return;
         }
@@ -55,8 +73,9 @@ export const AuthProvider = ({ children }) => {
   const resetAuth = () => {
     localStorage.removeItem("EpicBookToken");
     setToken(null);
-    setUserData(null);
+    setUserLogged(null);
   };
+
   //logout: reset parametri
   const logout = () => {
     resetAuth();
@@ -68,8 +87,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         setToken,
         isLogged,
-        userData,
-        setUserData,
+        userLogged,
+        setUserLogged,
         logout,
         userDataLoading,
       }}

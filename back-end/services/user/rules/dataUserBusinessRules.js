@@ -112,17 +112,17 @@ async function duplicateUserName(inputUserName) {
 
 };
 
-//--> controllo validità requisiti password
+//--> controllo password
 async function checkPassword(passwordList) {
     const {newPasswords, oldPassword, dbUserData} = passwordList;
     const reference = newPasswords[0];
 
     //controllo corispondenza nuove password
-    const matchpassword = newPasswords.every(
+    const matchNewPassword = newPasswords.every(
         (password) => password === reference
     );
 
-    if (!matchpassword) {
+    if (!matchNewPassword) {
         return {
             ok: false,
             error: {

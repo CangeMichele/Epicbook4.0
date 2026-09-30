@@ -110,7 +110,7 @@ export async function getUserbyParams(query) {
     for (const [field, val] of Object.entries(params)) {
         if (regexFields.includes(field)) {
             queryParams[field] = {
-                $regex: val,
+                $regex: (field === "userName" ? `^${val}$` : val ),
                 $options: "i"
             }
         } else {

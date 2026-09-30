@@ -64,7 +64,6 @@ export const getMatchPassword = async (oldPassword) => {
 //-> Aggiorna Avatar
 export const putAvatar = async ({ avtFormData }) => {
     const user_id = avtFormData.get("user_id");
-    console.log("user_id = " + user_id);
 
     if (!avtFormData || !user_id)
         return console.error("Errore nella chiamata API: putAvatar. Dati insufficenti")

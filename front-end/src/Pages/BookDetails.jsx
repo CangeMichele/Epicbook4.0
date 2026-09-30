@@ -22,7 +22,6 @@ export default function BookDetailes() {
     const fetchBook = async() =>{
       try {
         const book = await getBook(asin);
-        console.log(book);
         setBookDetails(book);
 
       } catch (error) {

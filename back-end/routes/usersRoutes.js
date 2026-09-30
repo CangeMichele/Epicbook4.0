@@ -278,7 +278,6 @@ router.delete("/:user_id", async (req, res) => {
         const resAvatarDelete = await cloudinary.uploader.destroy(avatarToDelete.avatar_id, { resource_type: "image" });
         if (resAvatarDelete.result !== "ok") {
             console.log("resAvrt:", JSON.stringify(resAvatarDelete, null, 2));
-
             throw new Error("Errore cancellazione su cloudinary");
         }
 

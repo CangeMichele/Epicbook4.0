@@ -114,8 +114,9 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
       setUserLogged(response.data);
       //chiudi modifica
       setIsEditing(false);
-    } catch (error) {
-      console.log("errore modifica", error);
+    
+    } catch (error) {    
+      console.error("errore modifica", error);
       alert("errore modifica");
     }
   };

@@ -7,7 +7,6 @@ import api from "./apiConfig";
 
 // -> Login utente, assegnazione token
 export const loginUser = async (credetials) => {
-    console.log("credetials: ", credetials);
     
     try {
         const response = await api.post("/auth/login", credetials);
@@ -15,7 +14,6 @@ export const loginUser = async (credetials) => {
         return response.data;
         
     } catch (error) {
-        console.log("API LOGIN error: ", error);
         throw error;
     }
 };
@@ -32,7 +30,7 @@ export const getAuthUser = async () => {
         return response.data;
 
     } catch (error) {
- 
+
         console.error("Errore nella richiesta getAuthUser:", error);
         throw error;
     }t

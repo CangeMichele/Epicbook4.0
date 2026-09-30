@@ -87,7 +87,6 @@ export default function UpdateAvatar({isMyProfile,displayedUser, setTriggerToast
       }));
     } catch (error) {
       setTriggerToast(true)
-      console.log(" errore nell'upload: " + error);
     }
     setImgUpload(null);
   };

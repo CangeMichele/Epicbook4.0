@@ -19,7 +19,6 @@ function SingleComment({
 
   //DELETE del commento
   const deleteComment = (commentId) => {
-    console.log('commentId: '+ commentId);
     fetch(url + commentId, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },

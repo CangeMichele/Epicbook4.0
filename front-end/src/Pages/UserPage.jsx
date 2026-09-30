@@ -20,9 +20,6 @@ export default function UserPage() {
   const params = useParams();
   const userInParams = params.user;
 
-  //navigatore
-  const navigate = useNavigate();
-
   //stato dati utente da visulaizzare
   const [profileData, setProfileData] = useState(null);
 
@@ -57,7 +54,6 @@ export default function UserPage() {
         } catch (error) {
           console.log("error: ", error);
           setTriggerToast(true);
-          setIsUserFoud(false);
         }
       };
       fetchProfileData();

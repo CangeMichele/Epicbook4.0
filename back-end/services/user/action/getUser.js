@@ -34,15 +34,15 @@ export async function getUser(params) {
 
 
     //applico controlli su parametri validati
-    //NOTE: a nome campo validato corrisponde uguale nome chiave regola
-
+    
     //presenza parametri
     const checkParam = hasParams(validated.data);
     if (!checkParam.ok) return {
         ...checkParam,
         ...(validated?.warnings && { warnings: validated.warnings })
     };
-
+    
+    //NOTE: a nome campo validato corrisponde uguale nome chiave regola
     //regole per parametro
     for (const [param, value] of Object.entries(validated.data)) {
         if (param in getUserBusinessRules) {

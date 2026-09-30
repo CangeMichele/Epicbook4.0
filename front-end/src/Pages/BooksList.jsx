@@ -55,8 +55,6 @@ function BooksList() {
     fetchBooks();
   }, [category, currentPage, limit]);
 
-  console.log("books state:", books);
-
   return (
     <>
       <Row className="m-5">

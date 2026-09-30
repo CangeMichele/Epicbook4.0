@@ -85,8 +85,6 @@ export default function Register() {
 
     try {
       const response = await addUser(registerData, fileAvatar);
-      console.log("response: ", response);
-
       //in caso di errore
       if (!response.ok) {
         

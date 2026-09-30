@@ -54,8 +54,6 @@ function validateEmail(email) {
 
 //--> Controllo sui campi password
 function validatePasswordList(passwordList) {
-
-    console.log("passwordLis:", passwordList);
     
     let {newPasswords, oldPassword} = passwordList;
     //regole sicurezza password

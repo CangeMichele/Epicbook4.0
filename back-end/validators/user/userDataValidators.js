@@ -6,7 +6,7 @@ import {
     integerNumberValidator,
     dateValidator,
     emailValidator,
-    newPasswordValidator
+    rulesValidator
 } from "../baseValidator.js";
 
 //--- utilità 
@@ -54,6 +54,10 @@ function validateEmail(email) {
 
 //--> Controllo sui campi password
 function validatePasswordList(passwordList) {
+
+    console.log("passwordLis:", passwordList);
+    
+    let {newPasswords, oldPassword} = passwordList;
     //regole sicurezza password
     const rules = [
         { name: "min_length", fn: v => v.length >= 8 },
@@ -64,26 +68,25 @@ function validatePasswordList(passwordList) {
     ];
 
     //verifica validità nuova password   
-    const reference = passwordList.newPasswords[0];
+    const reference = newPasswords[0];
+    const testNew = rulesValidator("password", reference, rules);
+    if (!("value" in testNew)) return testNew;
 
-    const resNew = newPasswordValidator(reference, rules);
-    if (!("value" in resNew)) return resNew;
     //sostituzione con dato validato
-    newPasswords[0] = resNew.value;
+    newPasswords[0] = testNew.value;
 
     //controllo vecchia password (se presente)
-    let oldPassword = passwordList.oldPassword;
-    let resOld = {};
+    let testOld = {};
     if (oldPassword) {
-        resOld = stringValidator(
+        testOld = stringValidator(
             "oldPassword",
             oldPassword,
             []
         );
-        if (!("value" in resOld)) return resOld;
+        if (!("value" in testOld)) return testOld;
     }
     //sostituzione con dato validato
-    oldPassword = resOld.value;
+    oldPassword = testOld.value;
 
     //restituisci valori puliti
     return {
@@ -97,25 +100,21 @@ function validatePasswordList(passwordList) {
 
 //--> Controllo campo userName
 function validateUserName(userName) {
-    const transforms = [];
-    //verifico input
-    const result = stringValidator(
-        "userName",
-        userName,
-        transforms
-    )
+    //regole caratteri ammessi
+    const rules = [
+        { name: "min_length", fn: v => v.length >= 3 },
+        { name: "max_length", fn: v => v.length <= 30 },
+        { name: "allowed_characters", fn: v => /^[A-Za-z0-9_-]+$/.test(v) }
+    ];
+    //verifica validità userName   
+    const result = rulesValidator("userName", userName, rules);
     return result
 };
 
-// --> Controllo campo user_id
-function validateUser_id(user_id) {
-    const transforms = [];
+// --> Controllo campo _id
+function validateUser_id(_id) {
     //verifico input
-    const result = stringValidator(
-        user_id,
-        "user_id",
-        transforms
-    )
+    const result = stringValidator("_id", _id)
     return result;
 };
 
@@ -152,7 +151,7 @@ export const userDataValidators = {
     email: validateEmail,
     passwordList: validatePasswordList,
     userName: validateUserName,
-    user_id: validateUser_id,
+    _id: validateUser_id,
     avatar_id: validateAvatar_id,
     avatar_url: validateAvatar_url
 };

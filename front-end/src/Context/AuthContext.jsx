@@ -10,50 +10,46 @@ export const AuthContext = createContext();
 
 // *** CONTEXT DI GESTIONE TOKEN E DATI UTENTE LOGGATO  ***
 export const AuthProvider = ({ children }) => {
-  
   // stato contenente token
-  const [token, setToken] = useState(null); 
-  
+  const [token, setToken] = useState(null);
+
   // stato dati utente
-  const [userLogged, setUserLogged] = useState(null); 
+  const [userLogged, setUserLogged] = useState(null);
 
   //stato caricamento dati utente
-  const [userDataLoading, setUserDataLoading] = useState(true); 
+  const [userDataLoading, setUserDataLoading] = useState(true);
 
   //parametro di login
-  const isLogged = !!token; 
+  const isLogged = !!token;
 
   const navigate = useNavigate();
 
-  //recupero token in localStorage se presente
-  useEffect(() => {
-    const savedToken = localStorage.getItem("EpicBookToken");
-    if (savedToken) setToken(savedToken); //
-  }, []);
-
   // recupero dati utente
-  useEffect(() => { 
+  useEffect(() => {
 
-    // se non c'è token blocca
     if (!token) {
-      return;
+      //recupero token dal localStorage
+      const savedToken = localStorage.getItem("EpicBookToken");
+      //se token assente interrompi
+      if (!savedToken) return;
+      
+      //sava token
+      setToken(savedToken);
     }
-    
+
     //estrapolazione dati utente
     const fetchUserData = async () => {
-      try {      
+      try {
         const data = await getAuthUser();
         //coversione birthDate da formato DB a front-end
-        const formattedDate = data.birthDate.slice(0, 9);
+        const formattedDate = data.birthDate.slice(0, 10);
         //caricamento user
-        const {birthDate, ...rest} = data;
+        const { birthDate, ...rest } = data;
         setUserLogged({
           ...rest,
-          birthDate: formattedDate
+          birthDate: formattedDate,
         });
-        
       } catch (error) {
-        
         // se token scaduto/non valido fai logout
         if (error.response.status == 401) {
           logout();
@@ -67,7 +63,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchUserData();
-  }, [token]);
+  }, [token, userLogged]);
 
   //reset dati autenticazione
   const resetAuth = () => {
@@ -86,6 +82,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         setToken,
+        token,
         isLogged,
         userLogged,
         setUserLogged,

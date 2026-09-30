@@ -5,10 +5,12 @@ import { AuthContext } from "../Context/AuthContext";
 //----- Componenti react-router-dom
 import { useParams, useNavigate } from "react-router-dom";
 //----- Componenti react-bootstrap
-import { Col, Row, Card, Toast } from "react-bootstrap";
+import { Col, Row, Card, Alert, Toast } from "react-bootstrap";
 // ----- Componenti app
 import AvatarComponents from "../Components/userpage/AvatarComponents";
 import UserDataComponents from "../Components/userpage/UserDataComponents";
+// ---- API
+import { getUsersByParams } from "../api/apiUsers";
 
 export default function UserPage() {
   //recupero dati utente dal context
@@ -22,15 +24,18 @@ export default function UserPage() {
   const navigate = useNavigate();
 
   //stato dati utente da visulaizzare
-  const [profileData, setProfileData] = useState({});
+  const [profileData, setProfileData] = useState(null);
 
   //stato attiva/chiudi toast errore
   const [triggerToast, setTriggerToast] = useState(false);
 
+  //stato utente trovato
+  const [isUserFound, setIsUserFound] = useState(true);
+
   //valore di controllo se utente loggato
   const isMyProfile = Boolean(
     userLogged &&
-    userLogged.userName.toLowerCase() === userInParams.toLocaleLowerCase(),
+    userLogged.userName?.toLowerCase() === userInParams.toLocaleLowerCase(),
   );
 
   //dati da visualizzare
@@ -38,23 +43,21 @@ export default function UserPage() {
 
   //estrapolazione dati utente
   useEffect(() => {
-    if (!userLogged) return;
-
+    
     if (!isMyProfile) {
       const fetchProfileData = async () => {
         try {
-          const response = await getUsersByParams({ userName: userInParams });
+          const response = await getUsersByParams({ userName: userInParams });          
 
-          if (response.length === 0) {
-            // navigate("/404");
-            console.log("non trovato!");
-            navigate("/404");
+          if (response.data?.length === 0) {
+            setIsUserFound(false);
           } else {
-            setProfileData(response[0]);
+            setProfileData(response.data[0]);
           }
         } catch (error) {
-          alert("errore nella ricerca");
-          navigate("/");
+          console.log("error: ", error);
+          setTriggerToast(true);
+          setIsUserFoud(false);
         }
       };
       fetchProfileData();
@@ -78,25 +81,34 @@ export default function UserPage() {
         <Toast.Body>Si è verificato un errore. Riprova più tardi.</Toast.Body>
       </Toast>
 
-      <Card style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <Row>
-          <Col md="4">
-            <AvatarComponents
-              setTriggerToast={setTriggerToast}
-              isMyProfile={isMyProfile}
-              displayedUser={displayedUser}
-            />
-          </Col>
+      {!isUserFound ? (
+        <Alert className="text-center">
+          <h1>Utente inesistente</h1>
+          <h3>riprova</h3>
+        </Alert>
+      ) : (
+        <Card
+          style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.1)", padding: "20px" }}
+        >
+          <Row>
+            <Col md="4">
+              <AvatarComponents
+                setTriggerToast={setTriggerToast}
+                isMyProfile={isMyProfile}
+                displayedUser={displayedUser}
+              />
+            </Col>
 
-          <Col md="8">
-            <UserDataComponents
-              setTriggerToast={setTriggerToast}
-              isMyProfile={isMyProfile}
-              displayedUser={displayedUser}
-            />
-          </Col>
-        </Row>
-      </Card>
+            <Col md="8">
+              <UserDataComponents
+                setTriggerToast={setTriggerToast}
+                isMyProfile={isMyProfile}
+                displayedUser={displayedUser}
+              />
+            </Col>
+          </Row>
+        </Card>
+      )}
     </>
   );
 }

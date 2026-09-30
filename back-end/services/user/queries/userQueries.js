@@ -201,18 +201,44 @@ export async function matchPassword(password, user_id) {
 // --------------------------   PUT   -------------------------------------
 //#region PUT
 
-export async function saveUpdateUser(user_id, updateData) {
+export async function saveUpdateUser(updateData) {
+
+    const { _id, ...rest } = updateData
+
     try {
-        const response = await User.findByIdAndUpdate(
-            user_id,
-            { $set: updateData },
-            { new: true }
-        );
+        //ricerca utente
+        const user = await User.findById(_id);
+        if (!user) {
+            return {
+                ok: false,
+                error: {
+                    code: "USER_FOUND",
+                    reason: "invalid_id",
+                    message: "Utente non trovato: id non valido"
+                }
+            }
+        }
+
+        //applico modifiche
+        for (const[field, value] of Object.entries(rest)) {
+            user[field] = value
+        }
+
+        //salvataggio
+        const response = await user.save();
+
+        //se password modificata nuova generazione token
+        let token = null;
+        if ("password" in rest) {
+            token = await generateJWT({ id: user._id });
+        }
 
         return {
             ok: true,
-            data: response
+            data: response,
+            ...(token ? { token } : {})
         }
+
     } catch (error) {
         console.error("Errore salvataggio modifica utente", error);
         return {

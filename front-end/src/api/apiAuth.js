@@ -11,10 +11,11 @@ export const loginUser = async (credetials) => {
     
     try {
         const response = await api.post("/auth/login", credetials);
-        console.log(response.data);
+        
         return response.data;
         
     } catch (error) {
+        console.log("API LOGIN error: ", error);
         throw error;
     }
 };

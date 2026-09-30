@@ -84,8 +84,9 @@ export const editUser = async (dataEdit) => {
 
     try {
         const response = await api.put(`/users/me`, dataEdit);
-        return response;
-
+        
+        return response.data;
+        
     } catch (error) {
         return error.response?.data;
     }

@@ -28,8 +28,11 @@ router.post("/login", async (req, res) => {
             })
         }
 
+        
+        
         //confronto password
         const isMatch = await user.comparePassword(password);
+         //const isMatch = Boolean(user.password === password)
         if (!isMatch) {
             return res.status(401).json({
                 ok: false,
@@ -38,10 +41,10 @@ router.post("/login", async (req, res) => {
                     reason: "mismatch_password",
                     message: "Password errata",
                     details: { field: "password" }
-
+                    
                 }
             });
-
+            
         }
 
         //generazione token JWT tramite id

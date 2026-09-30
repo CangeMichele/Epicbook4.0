@@ -141,9 +141,6 @@ export function dateValidator(field, value) {
     if (typeof value === "string") {
         const isoInput = value;
         const isoParsed = parsedDate.toISOString().slice(0, 10);
-        console.log("isoInput: ", isoInput);
-        console.log("isoParsed: ", isoParsed);
-        
 
         if (isoInput !== isoParsed) {
             return {
@@ -215,45 +212,41 @@ export function emailValidator(field, value) {
     return { value: sanitized };
 };
 
-// ----- NUOVA PASSWORD -----
-export function newPasswordValidator(password, rules) {
-   console.log("password: ", password);
-   
-    //verifica password come stringha
-    const result = stringValidator("password", password);
-    if (!("value" in result)) {
-        delete result.details.value;//elimina valore password dai dettagli errore
-        return result
-    }
-    const stringPsw = result.value;
+// ----- TEST REGOLE STRINGA -----
+export function rulesValidator(field, value, rules) {
+    const result = stringValidator(field, value);
+    if (!("value" in result)) return result
+
+    const sanitized = result.value;
+
     //verifica presenza condizioni
     if (!rules?.length) {
         return {
             reason: "empty",
             message: "Criteri di sicurezza password assenti.",
-            details: { field: "password" }
+            details: { field }
         }
     }
 
-    //verifico criteri sicurezza su referenza
+    //verifico se la stringa rispetta i parametri
     for (const rule of rules) {
-        const RulesRes = rule.fn(stringPsw);
-        if (!RulesRes) {
+        const test = rule.fn(sanitized);
+        if (!test) {
             return {
-                reason: "invalid_password",
-                message: "La password non rispetta i criteri minimi di sicurezza.",
+                reason: "invalid_rule",
+                message: `'${field}' non rispetta i criteri minimi di sicurezza.`,
                 details: {
-                    field: "password",
+                    field,
                     failedRule: rule.name
                 }
             }
         }
     }
 
-    //restituisco password pulita 
-    return { value: result.value }
+    //restituisco stringa pulita e verificata
+    return { value: sanitized }
 
-};
+}
 
 
 

@@ -16,18 +16,18 @@ import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
   //recupero dati dal context
-  const { userLogged, setUserLogged, resetAuth } = useContext(AuthContext);
+  const { userLogged, setUserLogged, token, setToken } = useContext(AuthContext);
 
   //navigatore
   const navigate = useNavigate();
 
   //stato dati editati
   const [dataEdit, setDataEdit] = useState({
-    userName: userLogged.userName,
-    firstName: userLogged.firstName,
-    lastName: userLogged.lastName,
-    birthDate: userLogged.birthDate,
-    email: userLogged.email,
+    userName: "",
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    email: "",
     oldPassword: "",
     password0: "",
     password1: "",
@@ -44,7 +44,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
 
   //indicatore required campi password (attivo se ha valore almeno un campo password)
   const requiredPassword = Boolean(
-    dataEdit.oldPassword || dataEdit.password0 || dataEdit.password1
+    dataEdit.oldPassword || dataEdit.password0 || dataEdit.password1,
   );
 
   // -> GESTORE cambiamento input form modifica
@@ -73,8 +73,6 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
     e.preventDefault();
     const form = e.currentTarget;
 
-    console.log("birthDate: ", dataEdit.birthDate);
-
     setIsFormValid(true);
 
     //controllo validità form
@@ -87,38 +85,31 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
       const response = await editUser(dataEdit);
 
       //catturo l'errore se presente
-      if (!response.ok) {
+      if (!(response.ok)) {
         //se errore validazione dati catturo errore
-        console.log("error: ", response);
-        if (response.error.code === "VALIDATION_ERROR") {
-          
+        if (
+          response.error?.code === "VALIDATION_ERROR" ||
+          response.error?.code === "BUSINESS_ERROR"
+        ) {
           setDataValidationError(response.error);
         } else {
           //se altro tipo di errore attivo toast
           setTriggerToast(true);
-        }
+        }        
         return;
       }
 
-      //SE PASSWORD MODIFICATA
-      if (dataEdit.password0) {
-        //utilizzo funzioni AuthContext per aggiornare token
-        resetAuth();
-        //ottenimento token
-        const resToken = await loginUser(loginFormData);
-        // aggiungo valore token con context
-        setToken(resToken.token);
-        //salvataggio token  in localStorage
-        localStorage.setItem("EpicBookToken", resToken.token);
-      }
-
+      //SE PASSWORD MODIFICATA => NUOVO TOKEN
+      if (response.token) {
+        //aggiornamento token  in localStorage
+        localStorage.setItem("EpicBookToken", response.token);
+      }   
       // SE USERNAME MODIFICATO url cambia, quindi ricarica
-      if (response.data.userName !== userLogged.userName) {
+      if (response.data?.userName !== userLogged?.userName) {
         //aggiorna dati utenti nel context
-        setUserLogged(response.data);
         navigate(`/user/${response.data.userName}`);
       }
-
+      
       //aggiorna dati utenti nel context
       setUserLogged(response.data);
       //chiudi modifica
@@ -142,7 +133,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
               type="text"
               name="userName"
               onChange={handleChange}
-              value={dataEdit.userName}
+              value={dataEdit.userName || userLogged?.userName}
               isInvalid={dataValidationError?.details?.field === "userName"}
               required
             />
@@ -161,7 +152,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
               type="text"
               name="firstName"
               onChange={handleChange}
-              value={dataEdit.firstName}
+              value={dataEdit.firstName || userLogged?.firstName}
               isInvalid={dataValidationError?.details?.field === "firstName"}
               required
             />
@@ -180,7 +171,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
               type="text"
               name="lastName"
               onChange={handleChange}
-              value={dataEdit.lastName}
+              value={dataEdit.lastName || userLogged?.lastName}
               isInvalid={dataValidationError?.details?.field === "lastName"}
               required
             />
@@ -199,9 +190,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
               type="date"
               name="birthDate"
               onChange={handleChange}
-              value={
-                dataEdit.birthDate ? dataEdit.birthDate.substring(0, 10) : ""
-              }
+              value={dataEdit.birthDate || userLogged?.birthDate}
               isInvalid={dataValidationError?.details?.field === "birthDate"}
               required
             />
@@ -220,7 +209,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
               type="email"
               name="email"
               onChange={handleChange}
-              value={dataEdit.email}
+              value={dataEdit.email || userLogged?.email}
               isInvalid={dataValidationError?.details?.field === "email"}
               required
             />
@@ -240,7 +229,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
                 type={showOldPassword ? "text" : "password"}
                 name="oldPassword"
                 onChange={handleChange}
-                value={dataEdit.oldPassword}
+                value={dataEdit.oldPassword || userLogged?.oldPassword}
                 isInvalid={
                   dataValidationError?.details?.field === "oldPassword"
                 }

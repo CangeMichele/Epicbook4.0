@@ -36,7 +36,7 @@ router.post("/", upload.single("avatar"), async (req, res) => {
         };
 
 
-        let avatarData = null;
+        const avatarData = {avatar_url, avatar_id};
 
         //caricamento avatar se file presente
         if (req.file) {
@@ -60,7 +60,7 @@ router.post("/", upload.single("avatar"), async (req, res) => {
 
         if (!result.ok) {
             //eliminazione avatar appena caricato
-            if (avatarData?.avatar_id && avatarData.avatar_id !== "avt_default") {
+            if (avatarData.avatar_id !== "epicbook/avatar/avt_default") {
                 const deleteAvatar = await cloudinary.uploader.destroy(
                     avatarData.avatar_id,
                     { resource_type: "image" }
@@ -186,7 +186,7 @@ router.put("/me/avatar", authMiddleware, upload.single("avatar"), async (req, re
 router.put("/me", authMiddleware, async (req, res) => {
 
     //recupero id dal middleware
-    const user_id = req.user._id.toString();
+    const _id = req.user._id.toString();
     //estrapolazione dati dal body     
     const { password0, password1, oldPassword, ...rest } = req.body;
     //indicatore presenza campi password 
@@ -194,7 +194,7 @@ router.put("/me", authMiddleware, async (req, res) => {
 
     //costruzione dati
     const dataEdit = {
-        user_id,
+        _id,
         ...rest,
         ...(isEditPassword ? {
             passwordList: {
@@ -204,9 +204,9 @@ router.put("/me", authMiddleware, async (req, res) => {
         } : {})
     };
 
-    try {
+    try {        
         //elaborazione dati e salvataggio in DB
-        const response = await updateUser(dataEdit);
+        const response = await updateUser(dataEdit);        
 
         if (!response.ok) {
             const status = errorStatusMap[response.error.code] || 500;

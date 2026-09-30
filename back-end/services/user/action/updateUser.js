@@ -9,6 +9,7 @@ import { dataUserBusinessRules } from "../rules/dataUserBusinessRules.js";
 import { getUserById, saveUpdateUser } from "../queries/userQueries.js";
 
 export async function updateUser(dataEdit) {
+    
 
     //dati da caricare
     const updateData = {};
@@ -42,7 +43,7 @@ export async function updateUser(dataEdit) {
     if (!validated.ok) return validated;
 
     //estrapolazione dati dal DB
-    const dbUserData = await getUserById(dataEdit._id);
+    const dbUserData = await getUserById(dataEdit._id);    
 
     //se presenti password, agginge dbUserData per utilizzare i metodi del documento mongoose
     if (dataEdit.passwordList) {
@@ -62,9 +63,14 @@ export async function updateUser(dataEdit) {
             if (!result.ok) return result;
         }
 
-        //verifica cambiamenti
-        //NB: passwordList già gestita da validator e da businessRules
-        if (field !== "passwordList" && oldData[field] === value) {
+        //verifico cambiamenti e gestione passwordList
+        
+        //aggiungo password a updateData
+        if (field === "passwordList") {
+            updateData.password = value.newPasswords[0];
+            continue;
+        }
+        if (field !== "passwordList" && dbUserData[field] === value) {
             warnings[field] = {
                 reason: "not_change",
                 accetpted: false,
@@ -72,19 +78,15 @@ export async function updateUser(dataEdit) {
             continue;
         }
 
-        //aggiungo password a updateData
-        if (field === "passwordList") {
-            updateData.password = value.newPasswords[0];
-            continue;
-        }
         updateData[field] = value;
-    }
+    }    
 
     //se nessun campo modificato
-    const result = dataUserBusinessRules.checkUpdateUser(updateData);
+    const result = await dataUserBusinessRules.checkUpdateUser(updateData);
+
     if (!result.ok) return result;
 
     //salva e invia risposta
-    const response = await saveUpdateUser(dataEdit._id, updateData);
+    const response = await saveUpdateUser(updateData);
     return { ...response, warnings };
 }

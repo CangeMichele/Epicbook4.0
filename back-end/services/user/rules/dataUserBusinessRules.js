@@ -3,7 +3,7 @@
 //----- queries
 import { getUserByEmail, getUserNamesByPrefix } from "../queries/userQueries.js";
 
-//--> controllo erà minima per iscrizione
+//----- CONTROLLO ETA' MINIMA -----
 function checkMinAge(birthDate) {
     //da stringa a Date
     const userAge = new Date(birthDate);
@@ -30,7 +30,7 @@ function checkMinAge(birthDate) {
     return { ok: true }
 };
 
-//--> controllo univocità email
+//---- CONTROLLO UNIVOCITA' EMAIL -----
 async function uniqueEmail(email) {
 
     const response = await getUserByEmail(email);
@@ -51,7 +51,7 @@ async function uniqueEmail(email) {
     return { ok: true }
 };
 
-//--> controllo univocità username + eventuale suggerimento
+//----- CONTROLLO UNIVOCITA' USERNAME + EVENTUALE SUGGERIMENTO -----
 async function duplicateUserName(inputUserName) {
 
     const userNameList = await getUserNamesByPrefix(inputUserName)
@@ -112,7 +112,7 @@ async function duplicateUserName(inputUserName) {
 
 };
 
-//--> controllo password
+//---- CONTROLLO PASSWORD -----
 async function checkPassword(passwordList) {
     const {newPasswords, oldPassword, dbUserData} = passwordList;
     const reference = newPasswords[0];
@@ -171,10 +171,10 @@ async function checkPassword(passwordList) {
 
 };
 
-//--> controlli generici su upadate
+//---- CONTROLLI GENERICI SU UPDATE -----
 async function checkUpdateUser(updateData) {
 
-    //controlla se documento vuoto
+    //---> controlla se documento vuoto
     if (!Object.keys(updateData).length) {
         return {
             ok: false,

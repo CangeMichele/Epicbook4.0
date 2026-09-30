@@ -17,7 +17,6 @@ import HomePage from "../../Pages/Home";
 import BooksList from "../../Pages/BooksList";
 import BookDetails from "../../Pages/BookDetails";
 import NotFound from "../../Pages/NotFound";
-import UserNotFound from "../../Pages/UserNotFound";
 
 // ----- MyMain.jsx
 export default function MyMain() {
@@ -70,9 +69,6 @@ export default function MyMain() {
             <BookDetails />
           }
         />
-        
-        {/* User not found */}
-        <Route path="*" element={<UserNotFound />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

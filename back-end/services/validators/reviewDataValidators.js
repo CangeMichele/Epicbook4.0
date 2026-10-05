@@ -4,7 +4,7 @@
 import {
     stringValidator,
     integerNumberValidator
-} from "../baseValidator.js";
+} from "./baseValidator.js";
 
 // -------------------- CAMPI DA VALIDARE --------------------
 

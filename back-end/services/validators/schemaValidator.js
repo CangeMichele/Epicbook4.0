@@ -1,6 +1,6 @@
-// *** VALIDAZONE DATI INPUT ***
+// *** VALIDAZONE DATI TRAMITE SCHEMA***
 
-export function validatedInputData(inputData, schema) {
+export function schemaValidator(inputData, schema) {
 
     //estrapolazione da schema
     const { allowedFields, requiredFields, validators } = schema;
@@ -10,7 +10,7 @@ export function validatedInputData(inputData, schema) {
     //lista warning
     const warnings = {};
 
-    //controllo schema
+    //controllo struttura schema
     if (!allowedFields || !requiredFields || !validators) {
         return {
             ok: false,
@@ -28,19 +28,34 @@ export function validatedInputData(inputData, schema) {
             }
         }
     }
-    
-    //ciclo per validare campi dati 
+
+    //controllo campi obbligatori
+    for (const field of requiredFields) {
+        if (!(field in inputData)) {
+            return {
+                ok: false,
+                error: {
+                    code: "VALIDATION_ERROR",
+                    reason: "required_field_missing",
+                    message: "Campo obbligatorio mancante.",
+                    details: { field }
+                }
+            }
+        }
+    }
+
+    //ciclo per validare campi dati input
     for (const [field, value] of Object.entries(inputData)) {
-        
+
         //se campo  non ammesso -> non consentito aggiunge a warning list e ignora 
-        if (!allowedFields.includes(field)) {
+        if (!(allowedFields.includes(field))) {
             warnings[field] = {
                 reason: "not_allowed_field",
-                accepted:false
+                accepted: false
             };
             continue;
         }
-        
+
         //controllo presenza validatore 
         const validator = validators[field];
         if (!validator) {
@@ -69,27 +84,12 @@ export function validatedInputData(inputData, schema) {
             }
         }
 
-        //aggiungi campo a dati validati
+        //aggiungo campo a dati validati
         validatedData[field] = validationResult.value;
 
         //eventuale warning
         if (validationResult.warning) {
             warnings[field] = validationResult.warning;
-        }
-    }
-
-    //controllo campi obbligatori
-    for (const field of requiredFields) {
-        if (!(field in validatedData)) {
-            return {
-                ok: false,
-                error: {
-                    code: "VALIDATION_ERROR",
-                    reason: "required_field_missing",
-                    message: "Campo obbligatorio mancante.",
-                    details: { field }
-                }
-            }
         }
     }
 

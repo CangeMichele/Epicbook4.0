@@ -1,18 +1,15 @@
 // ***** CREAZIONE NUOVO UTENTE ****
 
 // ----- validatori
-import { validatedInputData } from "../../../validators/CRUD/validatedInputData.js";
-import { userDataValidators } from "../../../validators/user/userDataValidators.js";
+import { schemaValidator } from "../../validators/schemaValidator.js";
+import { userDataValidators } from "../../validators/userDataValidators.js";
 // ----- business rules
-import { dataUserBusinessRules } from "../rules/dataUserBusinessRules.js";
+import { userDataBusinessRules } from "../../rules/userDataBusinessRules.js";
 // ----- queries
-import { saveNewUser } from "../queries/userQueries.js";
+import { saveNewUser } from "../../queries/userQueries.js";
 
-export async function createUser(inputData) { 
-        
-    //dati da caricare
-    const newData = {};
-    
+export async function createUser(inputData) {
+
     //dichiarazione schema
     const schema = {
         allowedFields: [
@@ -36,16 +33,19 @@ export async function createUser(inputData) {
         validators: userDataValidators
     };
 
-    //validazione dati
-    const validated = validatedInputData(inputData, schema);
+    //eseguo validazione
+    const validated = schemaValidator(inputData, schema);
     if (!validated.ok) return validated;
+    
+    //dati da caricare
+    const newData = {};
 
     //applico controlli su dati validati
-    for (const [field, value] of Object.entries(validated.data)) {        
-        
-        //NOTE: a nome campo validato corrisponde uguale nome chiave regola    
-        if (field in dataUserBusinessRules) {
-            const rule = dataUserBusinessRules[field];
+    for (const [field, value] of Object.entries(validated.data)) {
+
+        //NOTE: a nome campo validato corrisponde uguale nome campo regola     
+        if (field in userDataBusinessRules) {
+            const rule = userDataBusinessRules[field];
             const result = await rule(value);
             if (!result.ok) return result;
         }
@@ -55,7 +55,7 @@ export async function createUser(inputData) {
             newData.password = value.newPasswords[0];
         } else {
             newData[field] = value;
-        }            
+        }
     }
 
     //salva e invia risposta

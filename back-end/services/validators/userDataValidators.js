@@ -3,14 +3,13 @@
 //--- validatori base
 import {
     stringValidator,
-    integerNumberValidator,
     dateValidator,
     emailValidator,
     rulesValidator
-} from "../baseValidator.js";
+} from "./baseValidator.js";
 
 //--- utilità 
-import { utils } from "../baseValidator.js";
+import { utils } from "./baseValidator.js";
 
 
 // -------------------- CAMPI DA VALIDARE --------------------

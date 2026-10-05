@@ -1,10 +1,10 @@
-// *** VALIDAZIONE PER PARAMETRI QUERY  DI USER ***
+// *** VALIDAZIONE PER PARAMETRI DI IMPAGINAZIONE ***
 
 //--- validatori base
 import {
     stringValidator,
     integerNumberValidator,
-} from "../baseValidator.js";
+} from "./baseValidator.js";
 
 // -------------------- PARAMETRI DA VALIDARE --------------------
 
@@ -33,7 +33,7 @@ function validateSortDirection(sortDirection) {
 };
 
 // --------------------------   EXPORT WRAPPER   --------------------------------------
-export const userQueryValidators = {
+export const paginationValidators = {
     page: validatePage,
     limit: validateLimit,
     sort: validateSort,

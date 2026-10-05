@@ -1,20 +1,14 @@
 // ***** MODIFCA DATI UTENTE ****
 
 // ----- validatori
-import { validatedInputData } from "../../../validators/CRUD/validatedInputData.js";
-import { userDataValidators } from "../../../validators/user/userDataValidators.js";
+import { schemaValidator } from "../../validators/schemaValidator.js";
+import { userDataValidators } from "../../validators/userDataValidators.js";
 // ----- business rules
-import { dataUserBusinessRules } from "../rules/dataUserBusinessRules.js";
+import { userDataBusinessRules } from "../../rules/userDataBusinessRules.js";
 // ----- queries
-import { getUserById, saveUpdateUser } from "../queries/userQueries.js";
+import { getUserById, saveUpdateUser } from "../../queries/userQueries.js";
 
 export async function updateUser(dataEdit) {
-    
-
-    //dati da caricare
-    const updateData = {};
-    //lista warning
-    const warnings = {};
 
     //dichiarazione schema
     const schema = {
@@ -31,6 +25,11 @@ export async function updateUser(dataEdit) {
         validators: userDataValidators
     };
 
+    //dati da caricare
+    const updateData = {};
+    //lista warning
+    const warnings = {};
+
     //pulizia campi vuoti (non modificati)
     for (const [field, value] of Object.entries(dataEdit)) {
         if (value === null || value === "") {
@@ -39,11 +38,11 @@ export async function updateUser(dataEdit) {
     }
 
     //validazione dati
-    const validated = validatedInputData(dataEdit, schema);
+    const validated = schemaValidator(dataEdit, schema);
     if (!validated.ok) return validated;
 
     //estrapolazione dati dal DB
-    const dbUserData = await getUserById(dataEdit._id);    
+    const dbUserData = await getUserById(dataEdit._id);
 
     //se presenti password, agginge dbUserData per utilizzare i metodi del documento mongoose
     if (dataEdit.passwordList) {
@@ -57,14 +56,14 @@ export async function updateUser(dataEdit) {
     for (const [field, value] of Object.entries(validated.data)) {
 
         //NOTE: a nome campo validato corrisponde uguale nome chiave regola    
-        if (field in dataUserBusinessRules) {
-            const rule = dataUserBusinessRules[field];
+        if (field in userDataBusinessRules) {
+            const rule = userDataBusinessRules[field];
             const result = await rule(value);
             if (!result.ok) return result;
         }
 
         //verifico cambiamenti e gestione passwordList
-        
+
         //aggiungo password a updateData
         if (field === "passwordList") {
             updateData.password = value.newPasswords[0];
@@ -79,14 +78,20 @@ export async function updateUser(dataEdit) {
         }
 
         updateData[field] = value;
-    }    
+    }
 
-    //se nessun campo modificato
-    const result = await dataUserBusinessRules.checkUpdateUser(updateData);
-
-    if (!result.ok) return result;
+    //presenza campi da aggiornare
+    if (!Object.keys(updateData).length) return {
+        ok: false,
+        error: {
+            code: "BUSINESS_ERROR",
+            reason: "no_change",
+            message: "Non ci sono dati da aggiornare.",
+            ...(warnings && { warnings })
+        },
+    };
 
     //salva e invia risposta
     const response = await saveUpdateUser(updateData);
-    return { ...response, warnings };
+    return { ...response, ...(warnings && { warnings }) };
 }

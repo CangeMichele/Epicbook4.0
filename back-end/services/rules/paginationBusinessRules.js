@@ -1,27 +1,6 @@
-// *** REGOLE BUSINESS QUERIES UTENTE ***
+// *** REGOLE BUSINESS IMPAGINAZIONE ***
 
-//----- queries
-import { } from "../queries/userQueries.js";
-
-//--> controllo presenza parametri
-function hasParams(query) {
-    const params = query.params;
-
-    if (!params || !Object.keys(params).length) {
-        return {
-            ok: false,
-            error: {
-                code: "BUSINESS_ERROR",
-                reason: "empty_params",
-                message: "Nessun parametro adatto trovato.",
-            },
-    }
-}
-
-return { ok: true }
-};
-
-//--> controllo parametro impaginazione page 
+//--- CONTROLLO PARAMETRO PAGE ----- 
 function checkPage(page) {
     if (page <= 0) {
         return {
@@ -38,7 +17,7 @@ function checkPage(page) {
     return { ok: true }
 };
 
-//--> controllo parametro impaginazione limit 
+//--- CONTROLLO PARAMETRO LIMIT ----- 
 function checkLimit(limit) {
     //limite visualizzazione
     const max = 20;
@@ -58,7 +37,7 @@ function checkLimit(limit) {
     return { ok: true }
 };
 
-//--> controllo parametro impaginazione sort 
+//--- CONTROLLO PARAMETRO SORT ----- 
 function checkSort(sort) {
     //parametri consentiti per ordinamento
     const allowedSort = ["firstName", "lastName", "userName", "createdAt"]
@@ -77,7 +56,7 @@ function checkSort(sort) {
     return { ok: true }
 };
 
-//--> controllo parametro impaginazione sortDirection 
+//--- CONTROLLO PARAMETRO SORTDIRECTION ----- 
 function checkSortDirection(sortDirection) {
 
     if (sortDirection !== 1 && sortDirection !== -1) {
@@ -97,9 +76,8 @@ function checkSortDirection(sortDirection) {
 
 
 // --------------------------   EXPORT WRAPPER   --------------------------------------
-export { hasParams };
 
-export const getUserBusinessRules = {
+export const paginationBusinessRules = {
     page: checkPage,
     limit: checkLimit,
     sort: checkSort,

@@ -16,8 +16,8 @@ export const addUser = async (registerData, file) => {
     if (file) formData.append("avatar", file);
 
     try {
-        const userResponse = await api.post("/users", formData);
-        return userResponse.data;
+        const response = await api.post("/users", formData);
+        return response.data;
 
     } catch (error) {
 
@@ -46,7 +46,6 @@ export const getUsersByParams = async (params = {}) => {
 // -> Controllo password
 export const getMatchPassword = async (oldPassword) => {
     try {
-
         const response = await api.get("/users/me/check-password", { params: { password: oldPassword } });
         return response.data;
 
@@ -83,9 +82,8 @@ export const editUser = async (dataEdit) => {
 
     try {
         const response = await api.put(`/users/me`, dataEdit);
-        
         return response.data;
-        
+
     } catch (error) {
         return error.response?.data;
     }
@@ -93,4 +91,31 @@ export const editUser = async (dataEdit) => {
 
 //#endregion
 
+// --------------------------   DELTE   -------------------------------------
+//#region DELETE
 
+//-> Elimina utente
+export const deleteUser = async (inputDelete) => {
+
+    try {
+        const response = await api.delete(`/users/me`, { data: inputDelete });
+        return response;
+
+    } catch (error) {
+        //se erore dicverso da server
+        if(error.response?.data?.code !== "SERVER_ERROR"){
+            return error.response?.data;
+        }
+        //se altro errore
+        return {
+            ok: false,
+            error: {
+                code: "SERVER_ERROR",
+                reason: "delete_user",
+                message: error.message
+            }
+        };
+    }
+}
+
+//#endregion

@@ -3,12 +3,12 @@ import { useContext, useEffect, useState } from "react";
 // ----- Componenti context
 import { AuthContext } from "../Context/AuthContext";
 //----- Componenti react-router-dom
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 //----- Componenti react-bootstrap
 import { Col, Row, Card, Alert, Toast } from "react-bootstrap";
 // ----- Componenti app
-import AvatarComponents from "../Components/userpage/AvatarComponents";
-import UserDataComponents from "../Components/userpage/UserDataComponents";
+import Avatar from "../Components/userpage/Avatar";
+import UserData from "../Components/userpage/UserData";
 // ---- API
 import { getUsersByParams } from "../api/apiUsers";
 
@@ -40,11 +40,10 @@ export default function UserPage() {
 
   //estrapolazione dati utente
   useEffect(() => {
-    
     if (!isMyProfile) {
       const fetchProfileData = async () => {
         try {
-          const response = await getUsersByParams({ userName: userInParams });          
+          const response = await getUsersByParams({ userName: userInParams });
 
           if (response.data?.length === 0) {
             setIsUserFound(false);
@@ -88,7 +87,7 @@ export default function UserPage() {
         >
           <Row>
             <Col md="4">
-              <AvatarComponents
+              <Avatar
                 setTriggerToast={setTriggerToast}
                 isMyProfile={isMyProfile}
                 displayedUser={displayedUser}
@@ -96,7 +95,7 @@ export default function UserPage() {
             </Col>
 
             <Col md="8">
-              <UserDataComponents
+              <UserData
                 setTriggerToast={setTriggerToast}
                 isMyProfile={isMyProfile}
                 displayedUser={displayedUser}

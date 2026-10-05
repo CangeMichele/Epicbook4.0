@@ -3,25 +3,26 @@ import { useState, useContext } from "react";
 // ----- Componenti react-router-dom
 import { useNavigate } from "react-router-dom";
 // ----- Componenti context
-import { AuthContext } from "../../Context/AuthContext";
+import { AuthContext } from "../../Context/AuthContext.jsx";
 // ----- API
 import { editUser } from "../../api/apiUsers.js";
-import { loginUser } from "../../api/apiAuth.js";
 //----- Componenti react-bootstrap
-import { Form, Row, Col, Button, InputGroup } from "react-bootstrap";
+import { Form, Row, Col, Button, InputGroup, Modal } from "react-bootstrap";
+// ----- Componenti app
+import DeleteUserComponent from "./DeleteUserComponent.jsx";
 //---- Stilizzazone
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
-export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
+export default function UserDataUpdateComponent({ setIsEditing, setTriggerToast }) {
   //recupero dati dal context
-  const { userLogged, setUserLogged, token, setToken } = useContext(AuthContext);
+  const { userLogged, setUserLogged } = useContext(AuthContext);
 
   //navigatore
   const navigate = useNavigate();
 
-  //stato dati editati
+  //stato dati upload
   const [dataEdit, setDataEdit] = useState({
     userName: "",
     firstName: "",
@@ -35,8 +36,8 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
 
   //stato errore validità dati
   const [dataValidationError, setDataValidationError] = useState(null);
-  //stato validità form
-  const [isFormValid, setIsFormValid] = useState(false);
+  //stato validate form update
+  const [validated, setValidated] = useState(false);
   //stato mostra/nascondi vecchia password
   const [showOldPassword, setShowOldPassword] = useState(false);
   //stato mostra/nascondi nuova password
@@ -47,7 +48,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
     dataEdit.oldPassword || dataEdit.password0 || dataEdit.password1,
   );
 
-  // -> GESTORE cambiamento input form modifica
+  // -> GESTORE cambiamento input form update
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDataEdit({
@@ -61,19 +62,12 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
     }
   };
 
-  // -> GESTORE cambiamento file
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setFileAvatar(file);
-  };
-
   // -> GESTORE invio form di aggiornamento
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    setIsFormValid(true);
+    setValidated(true);
 
     //controllo validità form
     if (form.checkValidity() === false) {
@@ -85,7 +79,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
       const response = await editUser(dataEdit);
 
       //catturo l'errore se presente
-      if (!(response.ok)) {
+      if (!response.ok) {
         //se errore validazione dati catturo errore
         if (
           response.error?.code === "VALIDATION_ERROR" ||
@@ -95,7 +89,7 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
         } else {
           //se altro tipo di errore attivo toast
           setTriggerToast(true);
-        }        
+        }
         return;
       }
 
@@ -103,19 +97,18 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
       if (response.token) {
         //aggiornamento token  in localStorage
         localStorage.setItem("EpicBookToken", response.token);
-      }   
+      }
       // SE USERNAME MODIFICATO url cambia, quindi ricarica
       if (response.data?.userName !== userLogged?.userName) {
         //aggiorna dati utenti nel context
         navigate(`/user/${response.data.userName}`);
       }
-      
+
       //aggiorna dati utenti nel context
       setUserLogged(response.data);
       //chiudi modifica
       setIsEditing(false);
-    
-    } catch (error) {    
+    } catch (error) {
       console.error("errore modifica", error);
       alert("errore modifica");
     }
@@ -123,8 +116,13 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
 
   return (
     <>
-      {/* form editing */}
-      <Form noValidate validated={isFormValid} onSubmit={handleSubmit}>
+      {/* ----- FORM EDITING ----- */}
+      <Form
+        noValidate
+        validated={validated}
+        onSubmit={handleSubmit}
+        id="updateUserForm"
+      >
         <Form.Group as={Row} className="mb-3" controlId="username">
           <Form.Label column md={3}>
             Username
@@ -308,10 +306,18 @@ export default function UserDataUpdate({ setIsEditing, setTriggerToast }) {
             </Form.Control.Feedback>
           </Col>
         </Form.Group>
-
-        <Button type="submit">Modifica</Button>
-        <Button onClick={() => setIsEditing(false)}>annulla</Button>
       </Form>
+
+      <diV className="d-flex">
+        <Button type="submit" form="updateUserForm">
+          Modifica
+        </Button>
+        <Button onClick={() => setIsEditing(false)} type="button">
+          annulla
+        </Button>
+        {/* ----- ELIMINAZIONE UTENTE -----  */}
+        <DeleteUserComponent />
+      </diV>
     </>
   );
 }

@@ -5,16 +5,18 @@ import { getUserByEmail, getUserNamesByPrefix } from "../queries/userQueries.js"
 
 //----- CONTROLLO ETA' MINIMA -----
 function checkMinAge(birthDate) {
-    //da stringa a Date
+    //data nascita utente
     const userAge = new Date(birthDate);
-
+    //età minima
     const minAge = 16;
 
-    //sommo data di nascita e età minima
+    //calcolo quando età di user diventa valida (sommo anno nascita + età minima)
     userAge.setFullYear(userAge.getFullYear() + minAge);
-
+    
+    //data di oggi
     const today = new Date();
-
+    
+    //confronto la data di oggi con data valida per user.
     if (today < userAge) {
         return {
             ok: false,
@@ -54,17 +56,19 @@ async function uniqueEmail(email) {
 //----- CONTROLLO UNIVOCITA' USERNAME + EVENTUALE SUGGERIMENTO -----
 async function duplicateUserName(inputUserName) {
 
+    //verifico se ci username con lo stesso prefisso (es. Mario, Mario2 e MarioBros)
     const userNameList = await getUserNamesByPrefix(inputUserName)
     //se lista vuota, userName valido
     if (!userNameList.length) return { ok: true }
 
-
+    //verifico corrispondenza esatta fra userName input e nel DB (da elenco prefisso)
     const existedUserName = userNameList.some(
         (user) => user.userName.toLowerCase() === inputUserName.toLowerCase()
     );
     // se non c'è corrispondenza estta, userName valido
     if (!existedUserName) return { ok: true }
 
+    // USERNAMNE GIA' INSERITO -> SUGGERIMENTO
 
     //divido userName in parte numerica finale e tutto ciò che c'è prima
     const userNameParts = inputUserName.match(/^(.*?)(\d+)$/);
@@ -96,6 +100,7 @@ async function duplicateUserName(inputUserName) {
         }
     }
 
+    //  ritorna suggerimento e errore 
     return {
         ok: false,
         error: {
@@ -171,30 +176,11 @@ async function checkPassword(passwordList) {
 
 };
 
-//---- CONTROLLI GENERICI SU UPDATE -----
-async function checkUpdateUser(updateData) {
-
-    //---> controlla se documento vuoto
-    if (!Object.keys(updateData).length) {
-        return {
-            ok: false,
-            error: {
-                code: "BUSINESS_ERROR",
-                reason: "no_change",
-                message: "Non ci sono dati da aggiornare."
-            }
-        }
-    }
-
-    return { ok: true }
-
-}
 
 // --------------------------   EXPORT WRAPPER   --------------------------------------
-export const dataUserBusinessRules = {
+export const userDataBusinessRules = {
     birthDate: checkMinAge,
     email: uniqueEmail,
     userName: duplicateUserName,
-    passwordList: checkPassword,
-    checkUpdateUser: checkUpdateUser
+    passwordList: checkPassword
 }

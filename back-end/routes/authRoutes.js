@@ -32,7 +32,6 @@ router.post("/login", async (req, res) => {
         
         //confronto password
         const isMatch = await user.comparePassword(password);
-         //const isMatch = Boolean(user.password === password)
         if (!isMatch) {
             return res.status(401).json({
                 ok: false,

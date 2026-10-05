@@ -12,6 +12,8 @@ import authRoutes from "./routes/authRoutes.js";
 
 import { notFoundHandler, genericErrorHandler} from "./middlewares/errorHandlers.js"
 
+console.time("SERVER STARTUP");
+
 dotenv.config();
 
 const app = express();
@@ -43,5 +45,5 @@ app.listen(PORT, "0.0.0.0", () => { //SU TUTTI I DISPOSITI SULLA STESSA RETE
     console.log(`Server acceso alla porta ${PORT}`);
     console.log("Sono disponibli i seguenti end points");
     console.table(endpoints(app));
-
+    console.timeEnd("SERVER STARTUP");
 });

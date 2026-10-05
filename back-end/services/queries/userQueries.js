@@ -1,8 +1,7 @@
 //*** QUERY PER  DATI UTENTE ***
 
-import { response } from "express";
-import { generateJWT } from "../../../utils/jwt.js";
-import User from "../../../models/User.js";
+import { generateJWT } from "../../utils/jwt.js";
+import User from "../../models/User.js";
 
 // --------------------------   POST   -------------------------------------
 //#region POST
@@ -97,9 +96,9 @@ export async function getUserNamesByPrefix(userName) {
 };
 
 //--> estrapolazione utenti tramite query
-export async function getUserbyParams(query) {
+export async function getUserbyParams(query) {   
 
-    const params = query.params;
+    const params = query;    
     const regexFields = ["firstName", "lastName", "email", "userName"];
 
     const pagination = query.pagination || {};
@@ -116,10 +115,11 @@ export async function getUserbyParams(query) {
         } else {
             queryParams[field] = val;
         }
-    }
+    }    
 
     //costruione chiamata
     let dbQuery = User.find(queryParams);
+    
 
     //aggiungo eventuale paginazione alla chiamata
     if (Object.keys(pagination).length) {
@@ -133,6 +133,7 @@ export async function getUserbyParams(query) {
     try {
         const response = await dbQuery;
         const total = await User.countDocuments(queryParams);
+
         return {
             ok: true,
             data: response,

@@ -1,10 +1,13 @@
 //----- Componenti react
 import { createContext, useState } from "react";
 
+// *** CONTEXT DI CATEGORIA LIBRI  ***
+
 // contesto di autenticazione
 export const BooksContext = createContext();
 
 export const BooksProvider = ({ children }) => {
+  
   const categoryList = ["fantasy", "history", "horror", "romance", "scifi"];
   const [category, setCategory] = useState(null);
 

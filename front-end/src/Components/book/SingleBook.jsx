@@ -25,7 +25,7 @@ export default function SingleBook({ bookData }) {
           <Card.Title className="my-card-title">{bookData.title}</Card.Title>
           <Button
             className="w-100 my-2"
-            onClick={() => navigate(`/details/${bookData.asin}`)}
+            onClick={() => navigate(`/books/${bookData.asin}`)}
           >
             Dettagli
           </Button>

@@ -60,11 +60,11 @@ export default function MyMain() {
         />
 
         {/* BOOKS: libri per categoia */}
-        <Route path="books/" element={<BooksList />} />
+        <Route path="books/category/:category" element={<BooksList />} />
         
         {/* DETAILS: dettagli libro */}
         <Route
-          path="details/:asin"
+          path="books/:asin"
           element={
             <BookDetails />
           }

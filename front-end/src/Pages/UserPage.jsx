@@ -27,7 +27,7 @@ export default function UserPage() {
   const [triggerToast, setTriggerToast] = useState(false);
 
   //stato utente trovato
-  const [isUserFound, setIsUserFound] = useState(true);
+  const [isUserFound, setIsUserFound] = useState(false);
 
   //valore di controllo se utente loggato
   const isMyProfile = Boolean(
@@ -45,7 +45,7 @@ export default function UserPage() {
         try {
           const response = await getUsersByParams({ userName: userInParams });
 
-          if (response.data?.length === 0) {
+          if (!(response.data?.length)) {
             setIsUserFound(false);
           } else {
             setProfileData(response.data[0]);

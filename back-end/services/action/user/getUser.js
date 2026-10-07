@@ -8,7 +8,7 @@ import { paginationValidators } from "../../validators/paginationValidators.js"
 import {userDataBusinessRules} from "../../rules/userDataBusinessRules.js"
 import {paginationBusinessRules} from "../../rules/paginationBusinessRules.js"
 // ----- queries
-import { getUserbyParams } from "../../queries/userQueries.js";
+import { getUserByParams } from "../../queries/userQueries.js";
 
 export async function getUser(params) {
 
@@ -53,16 +53,22 @@ export async function getUser(params) {
     for (const [param, value] of Object.entries(validated.data)) {
 
         //NOTE: a nome campo validato corrisponde uguale nome campo regola 
+        
+        //regole campi user
+        if(param in userDataBusinessRules){
+            const rule = userDataBusinessRules[param];
+            const result = await rule(value);
+            if(!result.ok) return result
+        }
         //regole campi impaginazione
         if(param in paginationBusinessRules){
             const rule = paginationBusinessRules[param];
             const result = await rule(value);
             if(!result.ok) return result
         }
-
     }
 
     //invia query
-    const response = await getUserbyParams(validated.data);
+    const response = await getUserByParams(validated.data);
     return response;
 };

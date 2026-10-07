@@ -96,42 +96,49 @@ export async function getUserNamesByPrefix(userName) {
 };
 
 //--> estrapolazione utenti tramite query
-export async function getUserbyParams(query) {   
+export async function getUserByParams(query) {
+    //estrapolazione dati
+    const { page, limit, sort, sortDirection, ...rest } = query;
+    const params = rest;
+    const pagination = {
+        ...(page && { page }),
+        ...(limit && { limit }),
+        ...(sort && { sort }),
+        ...(sortDirection && { sortDirection }),
+    }
 
-    const params = query;    
-    const regexFields = ["firstName", "lastName", "email", "userName"];
-
-    const pagination = query.pagination || {};
-    const { page, limit, sort, sortDirection, skip } = pagination;
+    const queryParams = {}
 
     //costruzione parametri 
-    const queryParams = {}
     for (const [field, val] of Object.entries(params)) {
-        if (regexFields.includes(field)) {
-            queryParams[field] = {
-                $regex: (field === "userName" ? `^${val}$` : val ),
-                $options: "i"
-            }
-        } else {
-            queryParams[field] = val;
+        queryParams[field] = {
+            $regex: `^${val}$`,
+            $options: "i"
         }
-    }    
+    }
 
     //costruione chiamata
     let dbQuery = User.find(queryParams);
-    
 
     //aggiungo eventuale paginazione alla chiamata
     if (Object.keys(pagination).length) {
 
         dbQuery = dbQuery
-            .sort({ [sort]: sortDirection })
-            .skip(skip)
-            .limit(limit)
+            .page(page || 1)
+            .limit(limit || 10)
+            .sort({
+                [sort || "createdAt"]: sortDirection || 1
+            })
+            .sortDirection(sortDirection || 1)
+            .skip(
+                ((page - 1) * limit) || 0
+            )
     }
 
     try {
+        //chiamata DB
         const response = await dbQuery;
+        //totali risultati trovati
         const total = await User.countDocuments(queryParams);
 
         return {
@@ -142,7 +149,7 @@ export async function getUserbyParams(query) {
                     ...pagination,
                     currentPage: page,
                     totalPages: Math.ceil(total / limit),
-                    totalResult: total
+                    totalResults: total
                 }
             })
         }
@@ -221,7 +228,7 @@ export async function saveUpdateUser(updateData) {
         }
 
         //applico modifiche
-        for (const[field, value] of Object.entries(rest)) {
+        for (const [field, value] of Object.entries(rest)) {
             user[field] = value
         }
 

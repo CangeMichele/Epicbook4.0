@@ -1,7 +1,7 @@
 //-----Componenti react-router-bootstrap
 import { LinkContainer } from "react-router-bootstrap";
 //----- Componenti react-router-dom
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 // ----- Componenti context
 import { useContext } from "react";
 import { AuthContext } from "../../Context/AuthContext";
@@ -17,23 +17,24 @@ export default function MyNavbar() {
   const { categoryList, category, setCategory } = useContext(BooksContext);
 
   const navigate = useNavigate();
-  const location = useLocation();
-
+  //recupero categoria dal params
+  const params = useParams();
+  const categoryInParams = params.category;
   // recupero dal context
   const { isLogged, logout, userLogged } = useContext(AuthContext);
 
   //gestore click su categoria
   const handleCategoryClick = (selectedCat) => {
     setCategory(selectedCat);
-    if (location.pathname !== "/books") {
-      navigate("/books");
+    if (categoryInParams !== selectedCat) {
+      navigate(`/books/category/${selectedCat}`);
     }
   };
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary fixed-top" collapseOnSelect>
       <Container>
-        <Navbar.Brand>EpicBook!</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/"> EpicBook!</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
 
         <Navbar.Collapse id="basic-navbar-nav">

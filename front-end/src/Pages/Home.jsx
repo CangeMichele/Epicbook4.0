@@ -41,7 +41,7 @@ export default function HomePage() {
                   value={cat}
                   onClick={() => {
                     setCategory(cat);
-                    navigate("/books");
+                    navigate(`/books/category/${cat}`);
                   }}
                   className="category-card"
                 >
